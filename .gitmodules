@@ -1,0 +1,3 @@
+[submodule "avalanche"]
+	path = avalanche
+	url = https://github.com/ContinualAI/avalanche.git
