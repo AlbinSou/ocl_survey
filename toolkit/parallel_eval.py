@@ -19,39 +19,26 @@ from toolkit.json_logger import JSONLogger
 class BlockingScheduler:
     def __init__(self, max_launched):
         self.max_launched = max_launched
-        self.task_queue = []
-        self.running_tasks = []
+        self.scheduled_tasks = []
         atexit.register(self.close)
 
     def schedule(self, function, *args, **kwargs):
-        task = function.remote(*args)
-        if len(self.task_queue) + len(self.running_tasks) > self.max_launched:
-            self.task_queue.append(task)
-            self._wait_for_task_to_complete()
+        scheduled_task = None
+        if len(self.scheduled_tasks) > self.max_launched:
+            ready, _ = ray.wait(self.scheduled_tasks, num_returns=1)
+            self.scheduled_tasks.remove(ready[0])
+            scheduled_task = self.schedule(function, *args, **kwargs)
         else:
-            self.running_tasks.append(task)
-        return task
-
-    def _wait_for_task_to_complete(self):
-        while True:
-            ready, _ = ray.wait(self.running_tasks, num_returns=1)
-            self.running_tasks.remove(ready[0])
-            if not self.task_queue:
-                break
-            next_task = self.task_queue.pop(0)
-            if len(self.task_queue) + \
-                    len(self.running_tasks) > self.max_launched:
-                self.task_queue.insert(0, next_task)
-            else:
-                self.running_tasks.append(next_task)
-                break
+            scheduled_task = function.remote(*args, **kwargs)
+            self.scheduled_tasks.append(scheduled_task)
+        return scheduled_task
 
     def close(self):
-        ray.get(self.task_queue + self.running_tasks)
+        ray.get(self.scheduled_tasks)
 
 
 # change this if you want more/less resource per worker
-@ray.remote(num_cpus=2, num_gpus=0.1)
+@ray.remote(num_cpus=2, num_gpus=0.2)
 class EvaluationActor(object):
     """Parallel Evaluation Actor.
 
@@ -207,38 +194,3 @@ class ParallelEval(SupervisedPlugin):
             actors.append(actor)
         return actors
 
-
-if __name__ == "__main__":
-    ray.init(num_cpus=12, num_gpus=2)
-
-    from avalanche.benchmarks import SplitMNIST
-
-    scenario = SplitMNIST(5)
-    model = SimpleMLP(10)
-    optimizer = SGD(model.parameters(), lr=0.01)
-
-    # NOTE: eval_every must be -1 to disable the main strategy's PeriodicEval
-    # because we are going to use ParallelEval to evaluate the model.
-    strat = Naive(
-        model=model,
-        optimizer=optimizer,
-        train_mb_size=128,
-        train_epochs=1,
-        eval_every=-1,
-        eval_mb_size=512,
-        device="cuda",
-        plugins=[
-            ParallelEval(
-                metrics=accuracy_metrics(stream=True),
-                results_dir="./results",
-                eval_every=1,
-                num_actors=3,
-            )
-        ],
-    )
-
-    for t, experience in enumerate(scenario.train_stream):
-        strat.train(
-            experience, eval_streams=[
-                scenario.test_stream[: t + 1]], num_workers=0
-        )

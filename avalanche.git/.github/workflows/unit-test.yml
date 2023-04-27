@@ -1,0 +1,62 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 15-07-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+name: unit test
+
+on:
+  push:
+    branches:
+      - master
+      - detection
+    paths:
+      - '**.py'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
+  pull_request:
+    branches:
+      - master
+      - detection
+    paths:
+      - '**.py'
+      - '.github/workflows/unit-test.yml'
+      - 'environment.yml'
+
+jobs:
+  unit-test:
+    name: unit test
+    runs-on: ubuntu-latest
+    container:
+      image: continualai/avalanche-test-${{ matrix.python-version }}:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    defaults:
+      run:
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: python unit test
+        id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
+        run: |
+          python -m unittest discover tests &&
+          echo "Checking that optional dependencies are not needed" &&
+          pip uninstall -y higher ctrl-benchmark torchaudio gym pycocotools lvis &&
+          PYTHONPATH=. python examples/eval_plugin.py &&
+          echo "Running checkpointing tests..." &&
+          bash ./tests/checkpointing/test_checkpointing.sh &&
+          echo "While running unit tests, the following datasets were downloaded:" &&
+          ls ~/.avalanche/data

@@ -1,0 +1,16 @@
+.vscode/
+__pycache__
+.idea/
+.run/
+avalanche/benchmarks/datasets/*/data
+*.py~
+data/
+logs/
+*.pyc
+doc_html/*
+.coverage
+tb_data/
+csvlogs/
+docs/generated/
+.fleet
+pip-wheel-metadata

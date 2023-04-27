@@ -1,0 +1,118 @@
+################################################################################
+# Copyright (c) 2021 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 15-07-2021                                                             #
+# Author(s): Gabriele Graffieti                                                #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+
+name: environment update
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/environment-update.yml'
+      - 'environment.yml'
+  schedule:
+    - cron: '0 0 * * 0'  # midnight of every sunday
+
+
+jobs:
+  environment-creation:
+    if: github.repository == 'ContinualAI/avalanche'
+    name: new environment creation
+    runs-on: ubuntu-latest
+    container:
+      image: condaforge/mambaforge:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install opencv dependency libs
+        env:
+          DEBIAN_FRONTEND: "noninteractive"
+          TZ: "Etc/UTC"
+        run: |
+          apt-get update &&
+          apt-get install ffmpeg libsm6 libxext6  -y
+      - name: install conda environment
+        run: |
+          mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
+          conda run -n avalanche-env --no-capture-output mamba install -y -v pytorch==1.12.1 torchvision cpuonly -c pytorch &&
+          conda run -n avalanche-env --no-capture-output mamba env update --file environment.yml -v
+      - name: python unit test
+        id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
+        run: |
+          python -m unittest discover tests &&
+          echo "Running checkpointing tests..." &&
+          bash ./tests/checkpointing/test_checkpointing.sh
+      - name: checkout avalanche-docker repo
+        if: always()
+        uses: actions/checkout@v3
+        with:
+          repository: 'ContinualAI/avalanche-docker'
+          ref: master
+          path: 'avalanche-docker'
+          token: ${{ secrets.BOT_TOKEN }}
+      - name: test failure
+        if: failure()
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
+        run: |
+          conda env export > failed-environment.yml &&
+          diff avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml failed-environment.yml > diff_fail.txt
+      - name: test failure - open an issue
+        if: failure()
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.BOT_TOKEN }}
+          script: |
+            var title = "Creation of a new envirnment failed for python " + ${{ matrix.python-version }}
+            var message = "Here are the differences between the last working environment and the new one that I tried to run:\n\n```\n"
+            var fs = require("fs");
+            var diff = fs.readFileSync("diff_fail.txt", "utf-8");
+            var text_complete = message.concat(diff, "\n```")
+            github.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: text_complete,
+              labels: ['Continuous integration', 'test']
+            })
+      - name: test success
+        if: success()
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
+        run: |
+          rm -f avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml &&
+          conda env export > $"avalanche-docker/"${{ matrix.python-version }}"/environment-"${{ matrix.python-version }}".yml" &&
+          cd avalanche-docker &&
+          git config --local user.email ${{ secrets.BOT_EMAIL }} &&
+          git config --local user.name ${{ secrets.BOT_NAME }} &&
+          git pull &&
+          git add . &&
+          git commit -m $"Update environment with python "${{ matrix.python-version }} -a || true &&
+          git pull
+      - name: Push changes to avalanche-docker
+        if: success()
+        continue-on-error: true
+        uses: ad-m/github-push-action@master
+        with:
+          repository: ContinualAI/avalanche-docker
+          branch: master
+          directory: avalanche-docker
+          github_token: ${{ secrets.BOT_TOKEN }}
