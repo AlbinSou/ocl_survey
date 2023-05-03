@@ -87,9 +87,6 @@ class EvaluationActor(object):
 
         peval_args = {"evaluator": evaluator}
 
-        # NOTE: we need a stateful actor to keep the same
-        # logger for each evaluation
-        # step and to serialize the eval calls.
         self.strat = Naive(
             model=None,
             optimizer=None,
@@ -117,7 +114,7 @@ class ParallelEval(SupervisedPlugin):
         eval_every=-1,
         do_initial=False,
         num_actors=1,
-        mode="iteration",
+        mode="experience",
         max_launched=100,
         use_tensorboard=False,
         use_json=True,
@@ -138,12 +135,28 @@ class ParallelEval(SupervisedPlugin):
         :param do_initial: whether to evaluate before each `train` call.
             Occasionally needed becuase some metrics need to know the
             accuracy before training.
+        :param num_actors: number of evaluation actors to use. !CARE! if more than
+            one actor is used, it will be unable to compute metrics that depend on 
+            several evaluation steps (like stability metrics).
+        :param num_actors: number of evaluation actors to use. !CARE! if more than
+            one actor is used, it will be unable to compute metrics that depend on 
+            several evaluation steps (like stability metrics).
+        :param mode: evaluate after every experience or after 
+            every iteration (default: experience)
+        :param max_launched: Maximum number of tasks scheduled to avoid OOM
+        :param use_tensorboard: whether to use TensorboardLogger
+        :param use_json: whether to use JSONLogger
+        :param num_cpus: amount of cpus per actor
+        :param num_gpus: amount of gpus per actor (can be float less than 1)
+        :param **actor_args: parameters that will be given to the actor's strategy
+
         """
         super().__init__()
         self.num_gpus = num_gpus
         self.num_cpus = num_cpus
         self.metrics = metrics
         self.mode = mode
+        assert mode is in ["iteration", "experience"]
         self.results_dir = results_dir
         self.num_actors = num_actors
         self.eval_actors = self.create_actors(
@@ -152,8 +165,8 @@ class ParallelEval(SupervisedPlugin):
         self.eval_every = eval_every
         self.do_initial = do_initial and eval_every > -1
 
-        self.scheduler = BlockingScheduler(max_launched=max_launched)
         atexit.register(self.write_actor_logs)
+        self.scheduler = BlockingScheduler(max_launched=max_launched)
 
     def after_training_exp(self, strategy, **kwargs):
         """Final eval after a learning experience."""
