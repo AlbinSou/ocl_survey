@@ -49,48 +49,18 @@ class EvaluationActor(object):
 
     def __init__(
         self,
-        logdir="actor_log_dir",
-        metrics=[],
-        use_tensorboard=False,
-        use_json=False,
+        evaluator, 
         **strat_args
     ):
-        """Constructor.
-
-        Remember to pass an evaluator to the model.
-        Use different logdir for each actor.
-
-        :param strat_args:
         """
-
-        if not os.path.exists(logdir):
-            os.mkdir(logdir)
-
-        filename_json = os.path.join(logdir, "logs.json")
-        fp = open(filename_json, "w")
-        fp.close()
-
-        loggers = []
-
-        # Create loggers
-        self.json_logger = None
-        if use_tensorboard:
-            loggers.append(TensorboardLogger(tb_log_dir=logdir))
-        if use_json:
-            self.json_logger = JSONLogger(filename_json)
-            loggers.append(self.json_logger)
-
-        evaluator = EvaluationPlugin(
-            *metrics,
-            loggers=loggers,
-        )
-
-        peval_args = {"evaluator": evaluator}
+        Constructor.
+        :param strat_args: arguments of the strategy
+        """
 
         self.strat = Naive(
             model=None,
             optimizer=None,
-            **peval_args,
+            evaluator=evaluator,
             **strat_args,
         )
 
@@ -100,24 +70,23 @@ class EvaluationActor(object):
         self.strat.eval(stream, **kwargs)
 
     def write_files(self):
-        if self.json_logger is not None:
-            self.json_logger.update_json()
+        for logger in self.strat.evaluator.loggers:
+            if isinstance(logger, JSONLogger):
+                logger.update_json()
 
 
-class ParallelEval(SupervisedPlugin):
+class ParallelEvaluationPlugin(SupervisedPlugin):
     """Schedules periodic evaluation during training."""
 
     def __init__(
         self,
         metrics,
-        results_dir,
+        loggers,
         eval_every=-1,
         do_initial=False,
         num_actors=1,
-        mode="experience",
+        peval_mode="experience",
         max_launched=100,
-        use_tensorboard=False,
-        use_json=True,
         num_gpus=0.1,
         num_cpus=2,
         **actor_args
@@ -144,29 +113,32 @@ class ParallelEval(SupervisedPlugin):
         :param mode: evaluate after every experience or after 
             every iteration (default: experience)
         :param max_launched: Maximum number of tasks scheduled to avoid OOM
-        :param use_tensorboard: whether to use TensorboardLogger
-        :param use_json: whether to use JSONLogger
         :param num_cpus: amount of cpus per actor
         :param num_gpus: amount of gpus per actor (can be float less than 1)
         :param **actor_args: parameters that will be given to the actor's strategy
-
         """
         super().__init__()
         self.num_gpus = num_gpus
         self.num_cpus = num_cpus
-        self.metrics = metrics
-        self.mode = mode
-        assert mode is in ["iteration", "experience"]
-        self.results_dir = results_dir
+        self.peval_mode = peval_mode
+        assert peval_mode in ["iteration", "experience"]
         self.num_actors = num_actors
-        self.eval_actors = self.create_actors(
-            actor_args, num_actors, use_tensorboard, use_json
+
+        self.evaluator = EvaluationPlugin(
+            *metrics,
+            loggers=loggers,
         )
+
+        self.eval_actors = self.create_actors(
+            actor_args, num_actors, 
+        )
+
         self.eval_every = eval_every
         self.do_initial = do_initial and eval_every > -1
 
         atexit.register(self.write_actor_logs)
         self.scheduler = BlockingScheduler(max_launched=max_launched)
+
 
     def after_training_exp(self, strategy, **kwargs):
         """Final eval after a learning experience."""
@@ -202,10 +174,10 @@ class ParallelEval(SupervisedPlugin):
 
     def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every`."""
-        if self.mode == "iteration":
+        if self.peval_mode == "iteration":
             self._maybe_peval(strategy, strategy.clock.train_exp_iterations, **kwargs)
 
-    def create_actors(self, actor_args, num_actors, use_tensorboard, use_json):
+    def create_actors(self, actor_args, num_actors):
         actors = []
         # Make sure we use the "0" device for evaluation, actual devices will
         # be managed by ray
@@ -215,7 +187,7 @@ class ParallelEval(SupervisedPlugin):
             actor = EvaluationActor.options(
                 num_cpus=self.num_cpus, num_gpus=self.num_gpus
             ).remote(
-                self.results_dir, self.metrics, use_tensorboard, use_json, **actor_args
+                evaluator=self.evaluator, **actor_args
             )
             actors.append(actor)
         return actors

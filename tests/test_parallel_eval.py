@@ -17,7 +17,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training import Naive
 from avalanche.training.plugins import EvaluationPlugin
 from toolkit.json_logger import JSONLogger
-from toolkit.parallel_eval import ParallelEval
+from toolkit.parallel_eval import ParallelEvaluationPlugin
 
 
 def create_strategy(model, plugins, use_logger=False, **kwargs):
@@ -73,15 +73,13 @@ def test_speed():
     ########################
 
     plugins = [
-        ParallelEval(
+        ParallelEvaluationPlugin(
             metrics=accuracy_metrics(stream=True),
-            results_dir="./results",
             eval_every=1,
             num_actors=8,
             eval_mb_size=128,
             max_launched=100,
-            use_tensorboard=False,
-            use_json=True,
+            loggers=[JSONLogger("./results/logs.json")],
         )
     ]
 
