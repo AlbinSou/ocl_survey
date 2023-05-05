@@ -1,0 +1,5 @@
+mem_size: 2000
+train_mb_size: 10
+eval_mb_size: 10
+train_epochs: 1
+device: cuda

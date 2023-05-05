@@ -1,0 +1,3 @@
+return_task_id: false
+shuffle: true
+class_ids_from_zero_in_each_exp: false

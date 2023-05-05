@@ -1,0 +1,11 @@
+defaults:
+  - evaluation.yaml
+
+parallel_evaluation: true
+num_gpus: 0.2
+num_cpus: 1
+num_actors: 4
+eval_every: 1
+loggers_parallel: 
+  - json
+  - tensorboard
