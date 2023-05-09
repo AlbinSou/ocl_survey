@@ -5,3 +5,4 @@ defaults:
 benchmark_name: split_cifar100
 n_experiences: 20
 val_size: 0.05
+use_transforms: true

@@ -4,18 +4,44 @@ import os
 import hydra
 import omegaconf
 import ray
+from hyperopt import hp
+from ray import tune
+from ray.air import session
+from ray.tune.search.hyperopt import HyperOptSearch
 
 import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
 import toolkit.utils as utils
-
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
 
 @hydra.main(config_path="../config")
 def main(config):
+    space = {
+        "alpha": hp.uniform("alpha", 0.0, 1.0),
+        "beta": hp.uniform("beta", 0.0, 1.0),
+    }
+
+    ray.init(num_gpus=1, num_cpus=12)
+
+    hyperopt_search = HyperOptSearch(space, metric="final_accuracy", mode="max")
+
+    tuner = tune.Tuner(
+        tune.with_resources(
+            tune.with_parameters(train_function, config=config), {"gpu": 0.1}
+        ),
+        tune_config=tune.TuneConfig(num_samples=5, search_alg=hyperopt_search),
+    )
+
+    results = tuner.fit()
+
+
+def train_function(ray_config, config):
+    # Update config with ray args
+    config.strategy.update(ray_config)
+
     utils.set_seed(config.experiment.seed)
 
     plugins = []
@@ -42,12 +68,12 @@ def main(config):
         str(config.experiment.seed),
     )
 
-    if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
-        os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
-    if not os.path.isdir(logdir):
-        os.mkdir(logdir)
+    # if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
+    #    os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
+    # if not os.path.isdir(logdir):
+    #    os.mkdir(logdir)
 
-    omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
+    # omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
 
     strategy = method_factory.create_strategy(
         model=model,
@@ -79,6 +105,10 @@ def main(config):
         )
 
         results = strategy.eval(scenario.valid_stream[: t + 1])
+
+    session.report(
+        {"final_accuracy": results["Top1_Acc_Stream/eval_phase/valid_stream/Task000"]}
+    )
 
 
 if __name__ == "__main__":

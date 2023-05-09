@@ -56,6 +56,7 @@ def create_strategy(
 
     if name == "der":
         strategy = "DER"
+        model.linear = nn.Linear(model.linear.classifier.in_features, 100)
         der_args = utils.extract_kwargs(
             ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
         )
@@ -67,6 +68,10 @@ def create_strategy(
 
 def get_loggers(loggers_list, logdir, prefix="logs"):
     loggers = []
+
+    if loggers_list is None:
+        return loggers
+
     for logger in loggers_list:
         if logger == "interactive":
             loggers.append(logging.InteractiveLogger())
@@ -91,7 +96,7 @@ def get_metrics(metric_names):
 def create_evaluator(
     metrics,
     logdir,
-    loggers_strategy,
+    loggers_strategy=None,
     loggers_parallel=None,
     parallel_evaluation=False,
     **parallel_eval_kwargs,

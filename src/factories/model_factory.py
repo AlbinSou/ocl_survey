@@ -4,11 +4,13 @@ import torch
 import avalanche.models as models
 import toolkit.utils as utils
 from avalanche.training.plugins import LRSchedulerPlugin
+from avalanche.models.dynamic_modules import IncrementalClassifier
 
 
 def create_model(model_type: str):
     if model_type == "resnet18":
         model = models.SlimResNet18(1)
+    model.linear = IncrementalClassifier(model.linear.in_features, 1)
     return model
 
 

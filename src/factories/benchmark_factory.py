@@ -3,6 +3,9 @@
 from typing import Optional, Sequence, Any, Union
 from avalanche.benchmarks import benchmark_with_validation_stream
 from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100
+from torchvision import transforms
+
+from factories.default_transforms import *
 
 """
 Benchmarks factory
@@ -20,11 +23,25 @@ def create_benchmark(
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
-    train_transform: Optional[Any] = None,
-    eval_transform: Optional[Any] = None,
+    use_transforms: bool = True,
 ):
+    #import pdb;pdb.set_trace()
     benchmark = None
     if benchmark_name == "split_cifar100":
+        if not use_transforms:
+            train_transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.5071, 0.4866, 0.4409), (0.2009, 0.1984, 0.2023)
+                    ),
+                ]
+            )
+            eval_transform = train_transform
+        else:
+            train_transform = default_cifar100_train_transform
+            eval_transform = default_cifar100_eval_transform
+
         benchmark = SplitCIFAR100(
             n_experiences,
             first_exp_with_half_classes=first_exp_with_half_classes,
@@ -38,6 +55,20 @@ def create_benchmark(
             dataset_root=dataset_root,
         )
     elif benchmark_name == "split_cifar10":
+        if not use_transforms:
+            train_transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                    ),
+                ]
+            )
+            eval_transform = train_transform
+        else:
+            train_transform = default_cifar10_train_transform
+            eval_transform = default_cifar10_eval_transform
+
         benchmark = SplitCIFAR10(
             n_experiences,
             first_exp_with_half_classes=first_exp_with_half_classes,
@@ -50,6 +81,7 @@ def create_benchmark(
             eval_transform=eval_transform,
             dataset_root=dataset_root,
         )
+
     assert benchmark is not None
     print(benchmark.classes_order_original_ids)
 
