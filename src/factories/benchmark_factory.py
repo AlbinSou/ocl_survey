@@ -23,9 +23,9 @@ def create_benchmark(
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
+    class_ids_from_zero_from_first_exp: bool = False,
     use_transforms: bool = True,
 ):
-    #import pdb;pdb.set_trace()
     benchmark = None
     if benchmark_name == "split_cifar100":
         if not use_transforms:
@@ -50,6 +50,7 @@ def create_benchmark(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+            class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
             train_transform=train_transform,
             eval_transform=eval_transform,
             dataset_root=dataset_root,
@@ -77,6 +78,7 @@ def create_benchmark(
             fixed_class_order=fixed_class_order,
             shuffle=shuffle,
             class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+            class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
             train_transform=train_transform,
             eval_transform=eval_transform,
             dataset_root=dataset_root,

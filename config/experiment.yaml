@@ -3,4 +3,3 @@ defaults:
 
 experiment:
   seed: 0
-  fixed_class_order: null

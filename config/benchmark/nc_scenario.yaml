@@ -1,3 +1,4 @@
 return_task_id: false
 shuffle: true
 class_ids_from_zero_in_each_exp: false
+class_ids_from_zero_from_first_exp: true

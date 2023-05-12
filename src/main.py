@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import numpy as np
 
 import hydra
 import omegaconf
@@ -31,6 +32,8 @@ def main(config):
         kwargs_optimizer=config["optimizer"],
         kwargs_scheduler=config["scheduler"],
     )
+    print(optimizer)
+
     if scheduler_plugin is not None:
         plugins.append(scheduler_plugin)
 
@@ -60,7 +63,7 @@ def main(config):
     )
 
     print("Using strategy: ", strategy.__class__.__name__)
-    print("With plugins: ", plugins)
+    print("With plugins: ", strategy.plugins)
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
@@ -68,7 +71,7 @@ def main(config):
             original_streams=batch_streams,
             experiences=experience,
             experience_size=config.strategy.train_mb_size,
-            access_task_boundaries=False,
+            access_task_boundaries=True,
         )
 
         strategy.train(

@@ -4,4 +4,4 @@ defaults:
 name: der
 alpha: 0.1
 beta: 0.5
-batch_size_mem: 10
+batch_size_mem: 32

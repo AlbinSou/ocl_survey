@@ -12,7 +12,8 @@ from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
-from avalanche.training.supervised import DER, Naive
+from avalanche.training.supervised import Naive
+from toolkit.der_modified import DER
 from toolkit.json_logger import JSONLogger
 from toolkit.parallel_eval import ParallelEvaluationPlugin
 
@@ -60,6 +61,7 @@ def create_strategy(
         der_args = utils.extract_kwargs(
             ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
         )
+        strategy_dict.update(der_args)
 
     cl_strategy = globals()[strategy](**strategy_dict)
 
