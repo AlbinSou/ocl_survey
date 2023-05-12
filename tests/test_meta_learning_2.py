@@ -288,7 +288,7 @@ if __name__ == "__main__":
             "meta_val_steps": 3,
             "train_passes": 3,
             "seed": 0,
-            "lr_meta_lr": 0.0,
+            "lr_meta_lr": 0.001,
             "fixed_init_meta_lr": False,
         },
     )
