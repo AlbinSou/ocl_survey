@@ -14,7 +14,9 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.supervised import Naive
 from toolkit.der_modified import DER
+from toolkit.erace_modified import ER_ACE
 from toolkit.json_logger import JSONLogger
+from toolkit.lambda_scheduler import LambdaScheduler
 from toolkit.parallel_eval import ParallelEvaluationPlugin
 
 
@@ -50,6 +52,10 @@ def create_strategy(
         logdir=logdir, **evaluation_kwargs
     )
 
+    strategy_dict.update({"evaluator": evaluator})
+
+    plugins = []
+
     # When using parallel eval
     # let it do the job of Peval
     if parallel_eval_plugin is not None:
@@ -58,12 +64,27 @@ def create_strategy(
     if name == "der":
         strategy = "DER"
         model.linear = nn.Linear(model.linear.classifier.in_features, 100)
-        der_args = utils.extract_kwargs(
+        specific_args = utils.extract_kwargs(
             ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
         )
-        strategy_dict.update(der_args)
 
-    cl_strategy = globals()[strategy](**strategy_dict)
+    if name == "er_ace":
+        strategy = "ER_ACE"
+        specific_args = utils.extract_kwargs(
+            ["alpha", "alpha_ramp", "batch_size_mem", "mem_size"], strategy_kwargs
+        )
+
+        alpha_scheduler = LambdaScheduler(
+            plugin=None,
+            scheduled_key="alpha",
+            start_value=specific_args["alpha"],
+            coefficient=specific_args.pop("alpha_ramp"), 
+        )
+
+        plugins.append(alpha_scheduler)
+
+    strategy_dict.update(specific_args)
+    cl_strategy = globals()[strategy](**strategy_dict, plugins=plugins)
 
     return cl_strategy
 
@@ -80,7 +101,7 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
         if logger == "tensorboard":
             loggers.append(logging.TensorboardLogger(logdir))
         if logger == "text":
-            loggers.append(logging.TextLogger(os.path.join(logdir, f"{prefix}.txt")))
+            loggers.append(logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w")))
         if logger == "json":
             loggers.append(
                 JSONLogger(os.path.join(logdir, f"{prefix}.json"), autoupdate=False)
@@ -108,7 +129,7 @@ def create_evaluator(
     """
     strategy_metrics = get_metrics(metrics)
     loggers_strategy = get_loggers(loggers_strategy, logdir, prefix="logs")
-    evaluator_strategy = EvaluationPlugin(strategy_metrics, loggers_strategy)
+    evaluator_strategy = EvaluationPlugin(*strategy_metrics, loggers=loggers_strategy)
 
     parallel_eval_plugin = None
     if parallel_evaluation:

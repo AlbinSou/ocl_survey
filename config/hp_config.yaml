@@ -1,7 +1,7 @@
 defaults:
   - benchmark: split_cifar100.yaml
   - sgd_optimization.yaml
-  - strategy: der.yaml
+  - strategy: er_ace.yaml
   - evaluation: nologger.yaml
   - model.yaml
   - experiment.yaml

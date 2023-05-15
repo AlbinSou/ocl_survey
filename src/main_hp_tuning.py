@@ -20,8 +20,9 @@ from avalanche.benchmarks.scenarios import OnlineCLScenario
 @hydra.main(config_path="../config")
 def main(config):
     space = {
-        "alpha": hp.uniform("alpha", 0.0, 1.0),
-        "beta": hp.uniform("beta", 0.0, 1.0),
+        "alpha": hp.uniform("alpha", 0.2, 1.0),
+        "alpha_ramp": hp.uniform("alpha_ramp", -2e-4, 2e-4),
+        #"beta": hp.uniform("beta", 0.0, 1.0),
     }
 
     ray.init(num_gpus=1, num_cpus=12)
@@ -32,7 +33,7 @@ def main(config):
         tune.with_resources(
             tune.with_parameters(train_function, config=config), {"gpu": 0.1}
         ),
-        tune_config=tune.TuneConfig(num_samples=5, search_alg=hyperopt_search),
+        tune_config=tune.TuneConfig(num_samples=7, search_alg=hyperopt_search),
     )
 
     results = tuner.fit()

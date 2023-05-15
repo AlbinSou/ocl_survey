@@ -1,0 +1,7 @@
+defaults:
+  - method_defaults.yaml
+
+name: er_ace
+alpha: 1.0
+alpha_ramp: 1e-4
+batch_size_mem: 32

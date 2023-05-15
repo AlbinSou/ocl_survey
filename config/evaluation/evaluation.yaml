@@ -6,4 +6,4 @@ metrics:
 loggers_strategy:
   - interactive
   - text
-  - json
+  - tensorboard
