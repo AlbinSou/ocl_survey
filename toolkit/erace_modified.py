@@ -44,8 +44,8 @@ class ACECriterion(RegularizationMethod):
         target_in,
         out_buffer,
         target_buffer,
-        weight_current=1.0,
-        weight_buffer=1.0,
+        weight_current=0.5,
+        weight_buffer=0.5,
     ):
         current_classes = torch.unique(target_in)
         loss_buffer = F.cross_entropy(out_buffer, target_buffer)
@@ -54,7 +54,7 @@ class ACECriterion(RegularizationMethod):
         loss_current = cross_entropy_with_oh_targets(
             out_in[:, current_classes], oh_target_in
         )
-        return (weight_buffer * loss_buffer + weight_current * loss_current) / 2
+        return (weight_buffer * loss_buffer + weight_current * loss_current)
 
 
 def cycle(loader):
@@ -87,7 +87,7 @@ class ER_ACE(SupervisedTemplate):
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
         :param mem_size: int : Fixed memory size
-        :param alpha: float : Weight applied to the loss on current data (default=1)
+        :param alpha: float : Weight applied to the loss on current data (default=0.5)
         :param batch_size_mem: int : Size of the batch sampled from the buffer
         :param train_mb_size: mini-batch size for training.
         :param train_epochs: number of training epochs.
@@ -173,6 +173,7 @@ class ER_ACE(SupervisedTemplate):
                     self.mb_buffer_out,
                     self.mb_buffer_y,
                     weight_current=self.alpha,
+                    weight_buffer=(1 - self.alpha),
                 )
 
             self._before_backward(**kwargs)

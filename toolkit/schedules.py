@@ -9,8 +9,9 @@ def linear_schedule(start_value, coefficient, min_value=None, max_value=None):
     Returns a scheduling function that starts from start value
     and increases or decreases with a ramp of given coefficient
     """
-
     def _lambda(iter_count):
+        _min_value = min_value
+        _max_value = max_value
         value = start_value + coefficient*iter_count
         if min_value is None:
             _min_value = value

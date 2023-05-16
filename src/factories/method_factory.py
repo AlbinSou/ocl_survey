@@ -79,6 +79,8 @@ def create_strategy(
             scheduled_key="alpha",
             start_value=specific_args["alpha"],
             coefficient=specific_args.pop("alpha_ramp"), 
+            min_value=0.,
+            max_value=1.0,
         )
 
         plugins.append(alpha_scheduler)
