@@ -3,9 +3,3 @@ optimizer:
   lr: 0.1
   momentum: 0.
   weight_decay: 0.
-
-scheduler:
-  type: null
-  update_at: iteration
-  reset_at: "never"
-  gamma: 0.1

@@ -23,7 +23,7 @@ class LambdaScheduler(SupervisedPlugin):
         """
         :param plugin: plugin object
         :param scheduled_key: key to schedule
-        :param schedule_by: epoch or iteration
+        :param schedule_by: epoch or iteration 
         """
         self.plugin = plugin
         self.key = scheduled_key

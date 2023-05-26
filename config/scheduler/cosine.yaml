@@ -1,0 +1,5 @@
+type: "cosine"
+reset_scheduler: true
+reset_lr: true
+eta_min: 0
+T_max: 4

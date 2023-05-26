@@ -1,8 +1,12 @@
 defaults:
   - benchmark: split_cifar100.yaml
-  - sgd_optimization.yaml
+  - scheduler: null.yaml
   - strategy: er_ace.yaml
   - evaluation: nologger.yaml
+  - sgd_optimization.yaml
   - model.yaml
   - experiment.yaml
   - hydra.yaml
+
+experiment:
+  stop_at_experience: 19

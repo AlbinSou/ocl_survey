@@ -4,7 +4,6 @@ import os
 import hydra
 import omegaconf
 import ray
-from hyperopt import hp
 from ray import tune
 from ray.air import session
 from ray.tune.search.hyperopt import HyperOptSearch
@@ -16,26 +15,39 @@ import src.factories.model_factory as model_factory
 import toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
+def update_config(ray_config, config):
+    for key, item in ray_config.items():
+        config[key].update(item)
+
 
 @hydra.main(config_path="../config")
 def main(config):
     space = {
-        "alpha": hp.uniform("alpha", 0.2, 0.8),
-        "alpha_ramp": hp.uniform("alpha_ramp", -2e-4, 2e-4),
+        "strategy": {
+            "alpha": tune.uniform(0.2, 0.8),
+            #"alpha_ramp": tune.uniform(-0.06, 0.06),#For per-experience
+            "alpha_ramp": tune.uniform(-1/1562, 1/1562),#For full-stream ramp
+            "train_epochs": tune.randint(1, 10),
+        },
+        "optimizer": {
+            "lr": tune.loguniform(1e-3, 1.0),
+        },
+        #"alpha_ramp": hp.uniform("alpha_ramp", -2e-4, 2e-4),
         # "beta": hp.uniform("beta", 0.0, 1.0),
     }
 
     ray.init(num_gpus=1, num_cpus=12)
 
-    hyperopt_search = HyperOptSearch(space, metric="final_accuracy", mode="max")
+    hyperopt_search = HyperOptSearch(metric="final_accuracy", mode="max")
 
     tuner = tune.Tuner(
         tune.with_resources(
-            tune.with_parameters(train_function, config=config), {"gpu": 0.1}
+            tune.with_parameters(train_function, config=config), {"gpu": 0.15, "num_retries": 0}
         ),
         tune_config=tune.TuneConfig(
-            num_samples=35, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=100, max_concurrent_trials=8, search_alg=hyperopt_search
         ),
+        param_space=space,
     )
 
     results = tuner.fit()
@@ -43,7 +55,8 @@ def main(config):
 
 def train_function(ray_config, config):
     # Update config with ray args
-    config.strategy.update(ray_config)
+    update_config(ray_config, config)
+    config.scheduler.T_max = config.strategy.train_epochs + 1
 
     utils.set_seed(config.experiment.seed)
 
@@ -92,7 +105,9 @@ def train_function(ray_config, config):
     print("With plugins: ", plugins)
 
     batch_streams = scenario.streams.values()
-    for t, experience in enumerate(scenario.train_stream):
+    for t, experience in enumerate(
+        scenario.train_stream[: config.experiment.stop_at_experience + 1]
+    ):
         ocl_scenario = OnlineCLScenario(
             original_streams=batch_streams,
             experiences=experience,

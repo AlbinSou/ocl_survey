@@ -54,8 +54,6 @@ def create_strategy(
 
     strategy_dict.update({"evaluator": evaluator})
 
-    plugins = []
-
     # When using parallel eval
     # let it do the job of Peval
     if parallel_eval_plugin is not None:
@@ -81,6 +79,8 @@ def create_strategy(
             coefficient=specific_args.pop("alpha_ramp"), 
             min_value=0.,
             max_value=1.0,
+            schedule_by="experience",
+            reset_at=None,
         )
 
         plugins.append(alpha_scheduler)

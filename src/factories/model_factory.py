@@ -36,19 +36,25 @@ def get_optimizer(
     scheduler = None
     if scheduler_type == "step":
         assert kwargs_scheduler is not None
-        scheduler_args = ["lr", "weight_decay"]
+        scheduler_args = ["gamma", "step_size"]
         scheduler_args = utils.extract_kwargs(scheduler_args, kwargs_scheduler)
-        scheduler = torch.optim.lr_scheduler.StepLR(**scheduler_args)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, **scheduler_args)
+
+    if scheduler_type == "cosine":
+        assert kwargs_scheduler is not None
+        scheduler_args = ["eta_min", "T_max"]
+        scheduler_args = utils.extract_kwargs(scheduler_args, kwargs_scheduler)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, **scheduler_args)
 
     if scheduler is not None:
-        plugin_args = []
+        plugin_args = ["reset_scheduler", "reset_lr"]
         plugin_args = utils.extract_kwargs(plugin_args, kwargs_scheduler)
         scheduler_plugin = LRSchedulerPlugin(
             scheduler,
-            reset_scheduler=False,
             step_granularity="iteration",
             **plugin_args
         )
     else:
         scheduler_plugin = None
+
     return optimizer, scheduler_plugin

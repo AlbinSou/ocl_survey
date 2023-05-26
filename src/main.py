@@ -81,7 +81,7 @@ def main(config):
             drop_last=True,
         )
 
-        results = strategy.eval(scenario.valid_stream[: t + 1])
+        results = strategy.eval(scenario.test_stream[: t + 1])
 
 
 if __name__ == "__main__":
