@@ -3,7 +3,7 @@ defaults:
   - scheduler: null.yaml
   - strategy: er_ace.yaml
   - evaluation: nologger.yaml
-  - sgd_optimization.yaml
+  - optimizer: sgd.yaml
   - model.yaml
   - experiment.yaml
   - hydra.yaml

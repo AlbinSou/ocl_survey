@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import os
-import numpy as np
+import torch
 
 import hydra
+import numpy as np
 import omegaconf
 import ray
 
@@ -11,7 +12,6 @@ import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
 import toolkit.utils as utils
-
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
 
@@ -45,12 +45,19 @@ def main(config):
         str(config.experiment.seed),
     )
 
-    if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
-        os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
-    if not os.path.isdir(logdir):
-        os.mkdir(logdir)
+    if config.experiment.logdir is None:
+        if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
+            os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
+        if not os.path.isdir(logdir):
+            os.mkdir(logdir)
 
-    omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
+        # Add full results dir to config
+        config.experiment.logdir = logdir
+
+        omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
+    else:
+        logdir = config.experiment.logdir
+
 
     strategy = method_factory.create_strategy(
         model=model,
@@ -76,12 +83,19 @@ def main(config):
 
         strategy.train(
             ocl_scenario.train_stream,
-            eval_streams=[],
+            eval_streams=[scenario.valid_stream[:t+1]],
             num_workers=0,
             drop_last=True,
         )
 
+        if config.experiment.save_models:
+            torch.save(
+                strategy.model.state_dict(), os.path.join(logdir, f"model_{t}.ckpt")
+            )
+
         results = strategy.eval(scenario.test_stream[: t + 1])
+
+    return results
 
 
 if __name__ == "__main__":

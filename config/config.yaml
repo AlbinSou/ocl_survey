@@ -1,9 +1,9 @@
 defaults:
   - benchmark: split_cifar100.yaml
-  - strategy: der.yaml
-  - evaluation: evaluation.yaml
+  - strategy: er.yaml
   - scheduler: null.yaml
-  - sgd_optimization.yaml
+  - evaluation: evaluation.yaml
+  - optimizer: sgd.yaml
   - model.yaml
   - experiment.yaml
   - hydra.yaml

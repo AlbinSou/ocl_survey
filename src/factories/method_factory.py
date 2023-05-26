@@ -9,7 +9,8 @@ import torch.nn as nn
 import avalanche.logging as logging
 import toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.training.plugins import SupervisedPlugin
+from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin
+from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.supervised import Naive
@@ -18,6 +19,7 @@ from toolkit.erace_modified import ER_ACE
 from toolkit.json_logger import JSONLogger
 from toolkit.lambda_scheduler import LambdaScheduler
 from toolkit.parallel_eval import ParallelEvaluationPlugin
+from toolkit.probing import ProbingPlugin
 
 
 """
@@ -59,14 +61,33 @@ def create_strategy(
     if parallel_eval_plugin is not None:
         strategy_dict["eval_every"] = -1
 
-    if name == "der":
+    if name == "er":
+        strategy = "Naive"
+        specific_args = utils.extract_kwargs(
+            ["mem_size", "batch_size_mem"], strategy_kwargs
+        )
+        storage_policy = ClassBalancedBuffer(max_size=specific_args["mem_size"], adaptive_size=True)
+        replay_plugin = ReplayPlugin(**specific_args, storage_policy=storage_policy)
+        plugins.append(replay_plugin)
+
+    elif name == "der":
         strategy = "DER"
+        # We have to use fixed classifier for this method
         model.linear = nn.Linear(model.linear.classifier.in_features, 100)
         specific_args = utils.extract_kwargs(
             ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
         )
+        strategy_dict.update(specific_args)
 
-    if name == "er_ace":
+    elif name == "mir":
+        strategy = "Naive"
+        specific_args = utils.extract_kwargs(
+            ["batch_size_mem", "mem_size", "subsample"], strategy_kwargs
+        )
+        mir_plugin = MIRPlugin(**specific_args)
+        plugins.append(mir_plugin)
+
+    elif name == "er_ace":
         strategy = "ER_ACE"
         specific_args = utils.extract_kwargs(
             ["alpha", "alpha_ramp", "batch_size_mem", "mem_size"], strategy_kwargs
@@ -76,16 +97,30 @@ def create_strategy(
             plugin=None,
             scheduled_key="alpha",
             start_value=specific_args["alpha"],
-            coefficient=specific_args.pop("alpha_ramp"), 
-            min_value=0.,
+            coefficient=specific_args.pop("alpha_ramp"),
+            min_value=0.0,
             max_value=1.0,
             schedule_by="experience",
             reset_at=None,
         )
 
+        strategy_dict.update(specific_args)
         plugins.append(alpha_scheduler)
 
-    strategy_dict.update(specific_args)
+    elif name == "linear_probing":
+        strategy = "Naive"
+        # Remake loggers so that they log results of probing in side directory
+        new_logdir = os.path.join(logdir, "linear_probing")
+        if not os.path.isdir(new_logdir):
+            os.mkdir(new_logdir)
+        evaluator, parallel_eval_plugin = create_evaluator(
+            logdir=new_logdir, **evaluation_kwargs
+        )
+        strategy_dict.update({"evaluator": evaluator})
+        probing_plugin = ProbingPlugin(logdir, prefix="model", reset_last_layer=True)
+        plugins.append(probing_plugin)
+
+
     cl_strategy = globals()[strategy](**strategy_dict, plugins=plugins)
 
     return cl_strategy
@@ -103,7 +138,9 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
         if logger == "tensorboard":
             loggers.append(logging.TensorboardLogger(logdir))
         if logger == "text":
-            loggers.append(logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w")))
+            loggers.append(
+                logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w"))
+            )
         if logger == "json":
             loggers.append(
                 JSONLogger(os.path.join(logdir, f"{prefix}.json"), autoupdate=False)

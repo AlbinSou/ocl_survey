@@ -1,0 +1,5 @@
+defaults:
+  - method_defaults.yaml
+
+name: er
+batch_size_mem: 32

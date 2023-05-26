@@ -1,0 +1,6 @@
+defaults:
+  - method_defaults.yaml
+
+name: mir
+batch_size_mem: 32
+subsample: 200

@@ -1,0 +1,4 @@
+type: SGD
+lr: 0.01
+momentum: 0.
+weight_decay: 2e-4

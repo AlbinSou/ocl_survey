@@ -3,3 +3,5 @@ defaults:
 
 experiment:
   seed: 0
+  save_models: false
+  logdir: null

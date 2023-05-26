@@ -5,6 +5,7 @@ from typing import Dict, Union
 
 import numpy as np
 import torch
+import os
 
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.utils import AvalancheSubset
@@ -45,6 +46,12 @@ def extract_kwargs(extract, kwargs):
             raise AttributeError(f"Missing attribute {word} in provided configuration")
         init_dict.update({word: kwargs[word]})
     return init_dict
+
+def clear_tensorboard_files(directory):
+    for root, name, files in os.walk(directory):
+        for f in files:
+            if "events" in f:
+                os.system(f" rm {os.path.join(root, f)}")
 
 def assert_in(args, list):
     for arg in args:
