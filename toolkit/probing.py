@@ -5,6 +5,7 @@ import torch
 
 from avalanche.models.dynamic_modules import IncrementalClassifier
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
+from avalanche.benchmarks.scenarios import OnlineCLExperience
 
 
 class ProbingPlugin(SupervisedPlugin):
@@ -20,17 +21,14 @@ class ProbingPlugin(SupervisedPlugin):
         self.reset_last_layer = reset_last_layer
 
     def before_training_exp(self, strategy, **kwargs):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            raise ValueError("ProbingPlugin cannot be used on online experiences")
+
         # Load old model corresponding to current exp
         last_layer_name = list(strategy.model.named_parameters())[-1][0].split(".")[0]
 
-        if self.reset_last_layer:
-            in_features = getattr(strategy.model, last_layer_name).in_features
-            setattr(
-                strategy.model, last_layer_name, IncrementalClassifier(in_features, 1)
-            )
-            self.check_model_and_optimizer()
-
         # If no model dir is provided, keep the current model
+        # ! First load state dict THEN reset head
         if self.model_dir is not None:
             strategy.model.load_state_dict(
                 torch.load(
@@ -45,6 +43,19 @@ class ProbingPlugin(SupervisedPlugin):
                 if hasattr(c, "reset_parameters"):
                     c.reset_parameters()
 
+        if self.reset_last_layer:
+            last_layer = getattr(strategy.model, last_layer_name)
+
+            if hasattr(last_layer, "in_features"):
+                in_features = last_layer.in_features
+            else:
+                in_features = last_layer.classifier.in_features
+
+            setattr(
+                strategy.model, last_layer_name, IncrementalClassifier(in_features, 1)
+            )
+            strategy.check_model_and_optimizer()
+
         # Freeze the whole model except last classification layer
         for p in strategy.model.parameters():
             p.requires_grad = False
@@ -53,3 +64,7 @@ class ProbingPlugin(SupervisedPlugin):
             p.requires_grad = True
 
         strategy.model.eval()
+
+    def before_backward(self, strategy, **kwargs):
+        if strategy.experience.current_experience > 0:
+            import pdb;pdb.set_trace()
