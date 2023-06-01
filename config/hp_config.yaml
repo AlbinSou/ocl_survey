@@ -9,4 +9,4 @@ defaults:
   - hydra.yaml
 
 experiment:
-  stop_at_experience: 19
+  stop_at_experience: 4

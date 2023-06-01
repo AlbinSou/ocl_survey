@@ -16,7 +16,7 @@ import toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
 
-@hydra.main(config_path="../config")
+@hydra.main(config_path="../config", config_name="config.yaml")
 def main(config):
     utils.set_seed(config.experiment.seed)
 

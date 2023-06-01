@@ -20,7 +20,7 @@ def update_config(ray_config, config):
         config[key].update(item)
 
 
-@hydra.main(config_path="../config")
+@hydra.main(config_path="../config", config_name="hp_config.yaml")
 def main(config):
     space = {
         "strategy": {
