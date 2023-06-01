@@ -18,12 +18,13 @@ class LambdaScheduler(SupervisedPlugin):
         coefficient=1e-3,
         scheduling_function=linear_schedule,
         reset_at=None,
+        schedule_applier_func=None,
         **scheduling_kwargs,
     ):
         """
         :param plugin: plugin object
         :param scheduled_key: key to schedule
-        :param schedule_by: epoch or iteration 
+        :param schedule_by: epoch or iteration
         """
         self.plugin = plugin
         self.key = scheduled_key
@@ -31,9 +32,14 @@ class LambdaScheduler(SupervisedPlugin):
         self.total_data = 0
         self.reset_at = reset_at
 
+        if schedule_applier_func is not None:
+            self._applier_func = schedule_applier_func
+        else:
+            self._applier_func = lambda obj, key, value: setattr(obj, key, value)
+
         self.offset = 0
 
-        assert schedule_by in ["iteration", "epoch", "data", "experience"]
+        assert schedule_by in ["iteration", "epoch", "experience"]
 
         if plugin is None:
             print(f"Scheduling Strategy key {self.key}")
@@ -46,7 +52,6 @@ class LambdaScheduler(SupervisedPlugin):
         )
         self._set_plugin_attr(self.scheduler(0))
 
-
     def before_training_epoch(self, strategy, **kwargs):
         if self.schedule_by != "epoch":
             return
@@ -56,10 +61,10 @@ class LambdaScheduler(SupervisedPlugin):
 
     def _set_plugin_attr(self, value, strategy=None):
         if self.plugin is not None:
-            setattr(self.plugin, self.key, value)
+            self._applier_func(self.plugin, self.key, value)
         else:
             if strategy is not None:
-                setattr(strategy, self.key, value)
+                self._applier_func(strategy, self.key, value)
 
         if strategy is not None:
             strategy.evaluator.publish_metric_value(
@@ -70,7 +75,6 @@ class LambdaScheduler(SupervisedPlugin):
                     x_plot=strategy.clock.train_iterations,
                 )
             )
-
 
     def before_training_iteration(self, strategy, **kwargs):
         if self.schedule_by != "iteration":
@@ -83,11 +87,6 @@ class LambdaScheduler(SupervisedPlugin):
         if self.reset_at == "experience" and self.schedule_by == "iteration":
             self.offset = strategy.clock.train_iterations
 
-        #if self.schedule_by != "data":
-        #    return
-        #self.total_data += len(strategy.experience.dataset)
-        #value = self.scheduler(self.total_data)
-        if self.schedule_by != "experience":
-            return
-        value = self.scheduler(strategy.experience.current_experience)
-        self._set_plugin_attr(value, strategy)
+        if self.schedule_by == "experience":
+            value = self.scheduler(strategy.clock.train_exp_counter)
+            self._set_plugin_attr(value, strategy)

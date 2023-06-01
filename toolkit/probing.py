@@ -2,10 +2,11 @@ import os
 from collections import defaultdict
 
 import torch
+import torch.nn as nn
 
+from avalanche.benchmarks.scenarios import OnlineCLExperience
 from avalanche.models.dynamic_modules import IncrementalClassifier
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.benchmarks.scenarios import OnlineCLExperience
 
 
 class ProbingPlugin(SupervisedPlugin):
@@ -20,16 +21,27 @@ class ProbingPlugin(SupervisedPlugin):
         self.prefix = prefix
         self.reset_last_layer = reset_last_layer
 
+        self.initial_classifier = None
+
+    def before_training(self, strategy, **kwargs):
+        if self.initial_classifier is None:
+            # Load old model corresponding to current exp
+            self.last_layer_name = list(strategy.model.named_parameters())[-1][0].split(
+                "."
+            )[0]
+            self.initial_classifier = getattr(strategy.model, self.last_layer_name)
+
     def before_training_exp(self, strategy, **kwargs):
         if isinstance(strategy.experience, OnlineCLExperience):
             raise ValueError("ProbingPlugin cannot be used on online experiences")
 
-        # Load old model corresponding to current exp
-        last_layer_name = list(strategy.model.named_parameters())[-1][0].split(".")[0]
-
         # If no model dir is provided, keep the current model
         # ! First load state dict THEN reset head
         if self.model_dir is not None:
+            # Here, set initial classifier as head
+            setattr(strategy.model, self.last_layer_name, self.initial_classifier)
+            strategy.model = strategy.model_adaptation()
+
             strategy.model.load_state_dict(
                 torch.load(
                     os.path.join(
@@ -39,12 +51,12 @@ class ProbingPlugin(SupervisedPlugin):
                     map_location=strategy.device,
                 )
             )
-            for c in getattr(strategy.model, last_layer_name).modules():
+            for c in getattr(strategy.model, self.last_layer_name).modules():
                 if hasattr(c, "reset_parameters"):
                     c.reset_parameters()
 
         if self.reset_last_layer:
-            last_layer = getattr(strategy.model, last_layer_name)
+            last_layer = getattr(strategy.model, self.last_layer_name)
 
             if hasattr(last_layer, "in_features"):
                 in_features = last_layer.in_features
@@ -52,7 +64,14 @@ class ProbingPlugin(SupervisedPlugin):
                 in_features = last_layer.classifier.in_features
 
             setattr(
-                strategy.model, last_layer_name, IncrementalClassifier(in_features, 1)
+                strategy.model,
+                self.last_layer_name,
+                # nn.Linear(in_features, self.initial_classifier.classifier.out_features),
+                IncrementalClassifier(
+                    in_features,
+                    self.initial_classifier.classifier.out_features,
+                    masking=False,
+                ),
             )
             strategy.check_model_and_optimizer()
 
@@ -60,11 +79,7 @@ class ProbingPlugin(SupervisedPlugin):
         for p in strategy.model.parameters():
             p.requires_grad = False
             p.grad = None
-        for p in getattr(strategy.model, last_layer_name).parameters():
+        for p in getattr(strategy.model, self.last_layer_name).parameters():
             p.requires_grad = True
 
         strategy.model.eval()
-
-    def before_backward(self, strategy, **kwargs):
-        if strategy.experience.current_experience > 0:
-            import pdb;pdb.set_trace()

@@ -29,6 +29,10 @@ def get_optimizer(
         adam_args = ["lr", "weight_decay"]
         adam_args = utils.extract_kwargs(adam_args, kwargs_optimizer)
         optimizer = torch.optim.Adam(model.parameters(), **adam_args)
+    elif optimizer_type == "AdamW":
+        adam_args = ["lr", "weight_decay"]
+        adam_args = utils.extract_kwargs(adam_args, kwargs_optimizer)
+        optimizer = torch.optim.AdamW(model.parameters(), **adam_args)
 
     assert optimizer is not None
 

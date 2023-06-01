@@ -9,18 +9,20 @@ import torch.nn as nn
 import avalanche.logging as logging
 import toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin
+from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin, EarlyStoppingPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
-from avalanche.training.supervised import Naive
+from avalanche.training.supervised import *
+from avalanche.evaluation.metrics.cumulative_accuracies import CumulativeAccuracyPluginMetric
+
 from toolkit.der_modified import DER
 from toolkit.erace_modified import ER_ACE
 from toolkit.json_logger import JSONLogger
 from toolkit.lambda_scheduler import LambdaScheduler
 from toolkit.parallel_eval import ParallelEvaluationPlugin
 from toolkit.probing import ProbingPlugin
-
+from toolkit.debug import PdbPlugin
 
 """
 Method Factory
@@ -40,6 +42,7 @@ def create_strategy(
         "model": model,
         "optimizer": optimizer,
         "criterion": nn.CrossEntropyLoss(),
+        "evaluator": None,
     }
     strategy_args = utils.extract_kwargs(
         ["train_mb_size", "train_epochs", "eval_mb_size", "device"], strategy_kwargs
@@ -49,17 +52,6 @@ def create_strategy(
         ["eval_every", "peval_mode"], evaluation_kwargs
     )
     strategy_dict.update(strategy_eval_args)
-
-    evaluator, parallel_eval_plugin = create_evaluator(
-        logdir=logdir, **evaluation_kwargs
-    )
-
-    strategy_dict.update({"evaluator": evaluator})
-
-    # When using parallel eval
-    # let it do the job of Peval
-    if parallel_eval_plugin is not None:
-        strategy_dict["eval_every"] = -1
 
     if name == "er":
         strategy = "Naive"
@@ -108,7 +100,10 @@ def create_strategy(
         plugins.append(alpha_scheduler)
 
     elif name == "linear_probing":
-        strategy = "Naive"
+        strategy = "Cumulative"
+        # For some reason this strategy does not accept peval mode
+        strategy_dict.pop("peval_mode")
+
         # Remake loggers so that they log results of probing in side directory
         new_logdir = os.path.join(logdir, "linear_probing")
         if not os.path.isdir(new_logdir):
@@ -117,9 +112,26 @@ def create_strategy(
             logdir=new_logdir, **evaluation_kwargs
         )
         strategy_dict.update({"evaluator": evaluator})
+
         probing_plugin = ProbingPlugin(logdir, prefix="model", reset_last_layer=True)
         plugins.append(probing_plugin)
 
+        # Idk why for some tasks this fails
+        # Overall, I got similar results with similar number of epochs
+        #strategy_dict["eval_every"] = 1
+        #early_stopping = EarlyStoppingPlugin(patience=5, val_stream_name="valid_stream", margin=0.03)
+        #plugins.append(early_stopping)
+
+    if strategy_dict["evaluator"] is None:
+        evaluator, parallel_eval_plugin = create_evaluator(
+            logdir=logdir, **evaluation_kwargs
+        )
+        strategy_dict.update({"evaluator": evaluator})
+
+    # When using parallel eval
+    # let it do the job of Peval
+    if parallel_eval_plugin is not None:
+        strategy_dict["eval_every"] = -1
 
     cl_strategy = globals()[strategy](**strategy_dict, plugins=plugins)
 
@@ -151,7 +163,17 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
 def get_metrics(metric_names):
     metrics = []
     for m in metric_names:
-        metrics.append(globals()[m](stream=True))
+        if m == "accuracy_metrics":
+            metrics.append(accuracy_metrics(stream=True, experience=True))
+            metrics.append(accuracy_metrics(stream=True))
+        elif m == "loss_metrics":
+            metrics.append(loss_metrics(stream=True, experience=True))
+            metrics.append(loss_metrics(stream=True))
+            metrics.append(loss_metrics(epoch=True))
+        elif m == "cumulative_accuracy":
+            metrics.append(CumulativeAccuracyPluginMetric())
+        else:
+            metrics.append(globals()[m](stream=True))
     return metrics
 
 

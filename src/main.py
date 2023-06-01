@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import torch
+import argparse
 
 import hydra
 import numpy as np
@@ -51,10 +52,12 @@ def main(config):
         if not os.path.isdir(logdir):
             os.mkdir(logdir)
 
+        utils.clear_tensorboard_files(logdir)
+
         # Add full results dir to config
         config.experiment.logdir = logdir
 
-        omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
+        omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yaml"))
     else:
         logdir = config.experiment.logdir
 
@@ -74,15 +77,20 @@ def main(config):
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
-        ocl_scenario = OnlineCLScenario(
-            original_streams=batch_streams,
-            experiences=experience,
-            experience_size=config.strategy.train_mb_size,
-            access_task_boundaries=True,
-        )
+
+        if config.experiment.train_online:
+            ocl_scenario = OnlineCLScenario(
+                original_streams=batch_streams,
+                experiences=experience,
+                experience_size=config.strategy.train_mb_size,
+                access_task_boundaries=False,
+            )
+            train_stream = ocl_scenario.train_stream
+        else:
+            train_stream = experience
 
         strategy.train(
-            ocl_scenario.train_stream,
+            train_stream,
             eval_streams=[scenario.valid_stream[:t+1]],
             num_workers=0,
             drop_last=True,

@@ -51,7 +51,7 @@ def clear_tensorboard_files(directory):
     for root, name, files in os.walk(directory):
         for f in files:
             if "events" in f:
-                os.system(f" rm {os.path.join(root, f)}")
+                os.remove(os.path.join(root, f))
 
 def assert_in(args, list):
     for arg in args:

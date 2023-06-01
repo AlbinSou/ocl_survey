@@ -24,7 +24,7 @@ def update_config(ray_config, config):
 def main(config):
     space = {
         "strategy": {
-            "alpha": tune.uniform(0.2, 0.8),
+            "alpha": tune.uniform(0.2, 0.9),
             #"alpha_ramp": tune.uniform(-0.06, 0.06),#For per-experience
             "alpha_ramp": tune.uniform(-1/1562, 1/1562),#For full-stream ramp
             "train_epochs": tune.randint(1, 10),
@@ -45,7 +45,7 @@ def main(config):
             tune.with_parameters(train_function, config=config), {"gpu": 0.15, "num_retries": 0}
         ),
         tune_config=tune.TuneConfig(
-            num_samples=100, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=50, max_concurrent_trials=8, search_alg=hyperopt_search
         ),
         param_space=space,
     )
@@ -56,7 +56,9 @@ def main(config):
 def train_function(ray_config, config):
     # Update config with ray args
     update_config(ray_config, config)
-    config.scheduler.T_max = config.strategy.train_epochs + 1
+
+    if "T_max" in config["scheduler"]: 
+        config.scheduler.T_max = config.strategy.train_epochs + 1
 
     utils.set_seed(config.experiment.seed)
 
@@ -102,7 +104,7 @@ def train_function(ray_config, config):
     )
 
     print("Using strategy: ", strategy.__class__.__name__)
-    print("With plugins: ", plugins)
+    print("With plugins: ", strategy.plugins)
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(
