@@ -1,0 +1,7 @@
+peval_mode: experience
+eval_every: -1
+metrics: 
+  - accuracy_metrics
+  - loss_metrics
+loggers_strategy: 
+  - interactive
