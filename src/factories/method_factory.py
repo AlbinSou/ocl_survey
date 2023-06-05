@@ -22,7 +22,6 @@ from toolkit.json_logger import JSONLogger
 from toolkit.lambda_scheduler import LambdaScheduler
 from toolkit.parallel_eval import ParallelEvaluationPlugin
 from toolkit.probing import ProbingPlugin
-from toolkit.debug import PdbPlugin
 
 """
 Method Factory
