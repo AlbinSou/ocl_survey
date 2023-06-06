@@ -2,7 +2,7 @@
 
 from typing import Optional, Sequence, Any, Union
 from avalanche.benchmarks import benchmark_with_validation_stream
-from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100
+from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100, SplitImageNet
 from torchvision import transforms
 
 from factories.default_transforms import *
@@ -73,6 +73,35 @@ def create_benchmark(
         benchmark = SplitCIFAR10(
             n_experiences,
             first_exp_with_half_classes=first_exp_with_half_classes,
+            return_task_id=return_task_id,
+            seed=seed,
+            fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
+            class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+            class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+            dataset_root=dataset_root,
+        )
+
+    elif benchmark_name == "split_imagenet":
+        normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        )
+        if not use_transforms:
+            train_transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    normalize,
+                ]
+            )
+            eval_transform = train_transform
+        else:
+            train_transform = default_imagenet_train_transform
+            eval_transform = default_imagenet_eval_transform
+
+        benchmark = SplitImageNet(
+            n_experiences=n_experiences,
             return_task_id=return_task_id,
             seed=seed,
             fixed_class_order=fixed_class_order,
