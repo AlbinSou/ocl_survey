@@ -11,6 +11,12 @@ pip install hydra-core
 pip install -U "ray[tune]"
 ```
 
+Add to your python path the ocl_survey directory and the avalanche directory
+
+```
+conda env config vars set PYTHONPATH=/home/.../ocl_survey:/home/ocl_survey/avalanche.git
+```
+
 # Structure
 
 The code is structured as follows:
