@@ -4,6 +4,6 @@ defaults:
   - scheduler: null.yaml
   - evaluation: evaluation.yaml
   - optimizer: sgd.yaml
-  - model.yaml
+  - model: slimresnet18.yaml
   - experiment.yaml
   - hydra.yaml

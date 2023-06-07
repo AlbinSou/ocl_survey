@@ -4,6 +4,7 @@ from typing import Optional, Sequence, Any, Union
 from avalanche.benchmarks import benchmark_with_validation_stream
 from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100, SplitImageNet
 from torchvision import transforms
+import os
 
 from factories.default_transforms import *
 
@@ -110,7 +111,7 @@ def create_benchmark(
             class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
             train_transform=train_transform,
             eval_transform=eval_transform,
-            dataset_root=dataset_root,
+            dataset_root=os.path.join(dataset_root, "imagenet_avalanche"),
         )
 
     assert benchmark is not None

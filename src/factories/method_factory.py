@@ -2,6 +2,7 @@
 
 import os
 from typing import List, Optional
+import ray
 
 import torch
 import torch.nn as nn
@@ -131,6 +132,8 @@ def create_strategy(
     # let it do the job of Peval
     if parallel_eval_plugin is not None:
         strategy_dict["eval_every"] = -1
+        plugins.append(parallel_eval_plugin)
+
 
     cl_strategy = globals()[strategy](**strategy_dict, plugins=plugins)
 
@@ -153,8 +156,11 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
                 logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w"))
             )
         if logger == "json":
+            path = os.path.join(logdir, f"{prefix}.json")
+            if os.path.isfile(path):
+                os.remove(path)
             loggers.append(
-                JSONLogger(os.path.join(logdir, f"{prefix}.json"), autoupdate=False)
+                JSONLogger(path, autoupdate=False)
             )
     return loggers
 
@@ -193,11 +199,12 @@ def create_evaluator(
 
     parallel_eval_plugin = None
     if parallel_evaluation:
+        ray.init(num_gpus=1, num_cpus=12, include_dashboard=True)
         loggers_parallel = get_loggers(
             loggers_parallel, logdir, prefix="logs_continual"
         )
         parallel_eval_plugin = ParallelEvaluationPlugin(
-            metrics=metrics, loggers=loggers_parallel, **parallel_eval_kwargs
+            metrics=strategy_metrics, loggers=loggers_parallel, **parallel_eval_kwargs
         )
 
     return evaluator_strategy, parallel_eval_plugin

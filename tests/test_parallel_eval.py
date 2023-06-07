@@ -18,6 +18,7 @@ from avalanche.training import Naive
 from avalanche.training.plugins import EvaluationPlugin
 from toolkit.json_logger import JSONLogger
 from toolkit.parallel_eval import ParallelEvaluationPlugin
+from avalanche.benchmarks.scenarios import OnlineCLScenario
 
 
 def create_strategy(model, plugins, use_logger=False, **kwargs):
@@ -59,9 +60,17 @@ def test_speed():
         copy.deepcopy(model), plugins, use_logger=True, eval_every=-1
     )
     time_a = time.time()
+    batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
+        ocl_scenario = OnlineCLScenario(
+            original_streams=batch_streams,
+            experiences=experience,
+            experience_size=128,
+            access_task_boundaries=False,
+        )
+        train_stream = ocl_scenario.train_stream
         strat.train(
-            experience, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
+            train_stream, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
         )
     time_b = time.time()
     strat.eval(scenario.test_stream)
@@ -76,7 +85,7 @@ def test_speed():
         ParallelEvaluationPlugin(
             metrics=accuracy_metrics(stream=True),
             eval_every=1,
-            num_actors=8,
+            num_actors=4,
             eval_mb_size=128,
             max_launched=100,
             loggers=[JSONLogger("./results/logs.json")],
@@ -85,9 +94,17 @@ def test_speed():
 
     strat = create_strategy(copy.deepcopy(model), plugins, eval_every=-1)
     time_a = time.time()
+    batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
+        ocl_scenario = OnlineCLScenario(
+            original_streams=batch_streams,
+            experiences=experience,
+            experience_size=128,
+            access_task_boundaries=False,
+        )
+        train_stream = ocl_scenario.train_stream
         strat.train(
-            experience, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
+            train_stream, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
         )
 
     strat.eval(scenario.test_stream)
@@ -95,6 +112,7 @@ def test_speed():
     # this is otherwise called at exit so would be run in
     # parallel with the next test
     ray.get(plugins[0].scheduler.scheduled_tasks)
+    plugins[0].write_actor_logs()
     time_b = time.time()
 
     print(f"Time spent by parallel eval: {time_b - time_a}")
@@ -107,9 +125,17 @@ def test_speed():
 
     strat = create_strategy(copy.deepcopy(model), plugins, eval_every=1)
     time_a = time.time()
+    batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
+        ocl_scenario = OnlineCLScenario(
+            original_streams=batch_streams,
+            experiences=experience,
+            experience_size=128,
+            access_task_boundaries=False,
+        )
+        train_stream = ocl_scenario.train_stream
         strat.train(
-            experience, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
+            train_stream, eval_streams=[scenario.valid_stream[: t + 1]], num_workers=0
         )
     time_b = time.time()
     strat.eval(scenario.test_stream)

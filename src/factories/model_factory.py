@@ -2,6 +2,7 @@
 import torch
 
 import avalanche.models as models
+import torchvision.models as tvmodels
 import toolkit.utils as utils
 from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.models.dynamic_modules import IncrementalClassifier
@@ -10,7 +11,11 @@ from avalanche.models.dynamic_modules import IncrementalClassifier
 def create_model(model_type: str):
     if model_type == "resnet18":
         model = models.SlimResNet18(1)
-    model.linear = IncrementalClassifier(model.linear.in_features, 1)
+    if model_type == "resnet50":
+        model = tvmodels.resnet50()
+    last_layer_name = list(model.named_parameters())[-1][0].split(".")[0]
+    in_features = getattr(model, last_layer_name).in_features
+    setattr(model, last_layer_name, IncrementalClassifier(in_features, 1))
     return model
 
 

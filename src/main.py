@@ -77,7 +77,6 @@ def main(config):
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(scenario.train_stream):
-
         if config.experiment.train_online:
             ocl_scenario = OnlineCLScenario(
                 original_streams=batch_streams,

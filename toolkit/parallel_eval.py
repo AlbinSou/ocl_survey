@@ -86,7 +86,7 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         do_initial=False,
         num_actors=1,
         peval_mode="experience",
-        max_launched=100,
+        max_launched=50,
         num_gpus=0.1,
         num_cpus=2,
         **actor_args
@@ -98,9 +98,9 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param peval_mode: one of {'epoch', 'iteration'}. Decides whether the
-            periodic evaluation during training should execute every
-            `eval_every` epochs or iterations (Default='epoch').
+        :param peval_mode: one of {'epoch', 'iteration', 'experience'}. Decides whether 
+            the periodic evaluation during training should execute every
+            `eval_every` epochs or iterations (Default='experience').
         :param do_initial: whether to evaluate before each `train` call.
             Occasionally needed becuase some metrics need to know the
             accuracy before training.
@@ -136,8 +136,8 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         self.eval_every = eval_every
         self.do_initial = do_initial and eval_every > -1
 
-        atexit.register(self.write_actor_logs)
         self.scheduler = BlockingScheduler(max_launched=max_launched)
+        atexit.register(self.write_actor_logs)
 
 
     def after_training_exp(self, strategy, **kwargs):
