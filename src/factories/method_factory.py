@@ -23,6 +23,7 @@ from toolkit.json_logger import JSONLogger
 from toolkit.lambda_scheduler import LambdaScheduler
 from toolkit.parallel_eval import ParallelEvaluationPlugin
 from toolkit.probing import ProbingPlugin
+from toolkit.metrics import ClockLoggingPlugin
 
 """
 Method Factory
@@ -177,6 +178,8 @@ def get_metrics(metric_names):
             metrics.append(loss_metrics(epoch=True))
         elif m == "cumulative_accuracy":
             metrics.append(CumulativeAccuracyPluginMetric())
+        elif m == "clock":
+            metrics.append(ClockLoggingPlugin())
         else:
             metrics.append(globals()[m](stream=True))
     return metrics

@@ -68,6 +68,7 @@ class EvaluationActor(object):
         self.strat.model = model
         self.strat.clock = clock
         self.strat.eval(stream, **kwargs)
+        self.write_files()
 
     def write_files(self):
         for logger in self.strat.evaluator.loggers:
@@ -137,7 +138,7 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         self.do_initial = do_initial and eval_every > -1
 
         self.scheduler = BlockingScheduler(max_launched=max_launched)
-        atexit.register(self.write_actor_logs)
+        #atexit.register(self.write_actor_logs)
 
 
     def after_training_exp(self, strategy, **kwargs):
@@ -192,9 +193,9 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
             actors.append(actor)
         return actors
 
-    def write_actor_logs(self):
-        tasks = []
-        for a in self.eval_actors:
-            t = a.write_files.remote()
-            tasks.append(t)
-        ray.get(tasks)
+    #def write_actor_logs(self):
+    #    tasks = []
+    #    for a in self.eval_actors:
+    #        t = a.write_files.remote()
+    #        tasks.append(t)
+    #    ray.get(tasks)
