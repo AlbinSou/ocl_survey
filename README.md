@@ -9,6 +9,7 @@ Install ray and hydra
 ```
 pip install hydra-core
 pip install -U "ray[tune]"
+pip install jsonlines
 ```
 
 # Structure
