@@ -3,5 +3,6 @@ eval_every: -1
 metrics: 
   - accuracy_metrics
   - loss_metrics
+  - clock
 loggers_strategy: 
   - interactive

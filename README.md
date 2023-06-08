@@ -12,6 +12,14 @@ pip install -U "ray[tune]"
 pip install jsonlines
 ```
 
+Add to your python path the ocl_survey directory and the avalanche directory
+
+```
+conda env config vars set PYTHONPATH=/home/.../ocl_survey:/home/ocl_survey/avalanche.git
+```
+
+Change the content of the files config/results.yaml and config/benchmarks/root.yaml so that they point to the results and data directory of your machine
+
 # Structure
 
 The code is structured as follows:
