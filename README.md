@@ -51,19 +51,19 @@ The code is structured as follows:
 To launch an experiment, start from the default config file and change the part that needs to change
 
 ```
-python main.py strategy=er_ace evaluation=parallel_eval
+python main.py strategy=er_ace evaluation=parallel
 ```
 
 It's also possible to override more fine-grained arguments
 
 ```
-python main.py strategy=er_ace evaluation=parallel_eval strategy.alpha=0.7 optimizer.lr=0.05
+python main.py strategy=er_ace evaluation=parallel strategy.alpha=0.7 optimizer.lr=0.05
 ```
 
 Before running the script, you can display the full config with "-c job" option
 
 ```
-python main.py strategy=er_ace evaluation=parallel_eval -c job
+python main.py strategy=er_ace evaluation=parallel -c job
 ```
 
 Results will be saved in the directory specified in results.yaml. Under the following structure:
