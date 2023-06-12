@@ -29,8 +29,7 @@ The code is structured as follows:
         - method_factory.py
         - model_factory.py
         - benchmark_factory.py
-    - main.py # Main entry point for every experiments, no modifications should be needed in this
-    - main_hp_tuning.py # Main file for the hyperparameter tuning, change here the options for hp search depending on the method
+    - toolkit/ # Contains some utils functions, parallel evaluation plugins, modified strategies (hyperparameter addition) etc...
 - config/ # Config directory used by hydra, 
     - config.yaml # Default config for normal experiments
     - hp_config.yaml # Default config for hp selection
@@ -41,7 +40,9 @@ The code is structured as follows:
     - benchmarks/ # Contains benchmark relative config (one per benchmark)
         - root.yaml # Put here the root of the data dir from which the datasets will be fetched
     - scheduler/ # Contains learning rate scheduling relative args (one per scheduler)
-- toolkit/ # Contains some utils functions, parallel evaluation plugins, modified strategies (hyperparameter addition) etc...
+- experiments/
+    - main.py # Main entry point for every experiments, no modifications should be needed in this
+    - main_hp_tuning.py # Main file for the hyperparameter tuning, change here the options for hp search depending on the method
 - scripts/ # Contains shell scripts for running i.e multiple seeds, linear probing
 - tests/ # Some tests for special functionalities, some more should be added maybe more related to the experiments
 ```
