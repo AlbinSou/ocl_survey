@@ -3,7 +3,7 @@ import torch
 
 import avalanche.models as models
 import torchvision.models as tvmodels
-import toolkit.utils as utils
+import src.toolkit.utils as utils
 from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.models.dynamic_modules import IncrementalClassifier
 

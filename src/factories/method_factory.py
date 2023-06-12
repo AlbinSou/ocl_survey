@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 import avalanche.logging as logging
-import toolkit.utils as utils
+import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin, EarlyStoppingPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
@@ -17,13 +17,13 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.supervised import *
 from avalanche.evaluation.metrics.cumulative_accuracies import CumulativeAccuracyPluginMetric
 
-from toolkit.der_modified import DER
-from toolkit.erace_modified import ER_ACE
-from toolkit.json_logger import JSONLogger
-from toolkit.lambda_scheduler import LambdaScheduler
-from toolkit.parallel_eval import ParallelEvaluationPlugin
-from toolkit.probing import ProbingPlugin
-from toolkit.metrics import ClockLoggingPlugin
+from src.toolkit.der_modified import DER
+from src.toolkit.erace_modified import ER_ACE
+from src.toolkit.json_logger import JSONLogger
+from src.toolkit.lambda_scheduler import LambdaScheduler
+from src.toolkit.parallel_eval import ParallelEvaluationPlugin
+from src.toolkit.probing import ProbingPlugin
+from src.toolkit.metrics import ClockLoggingPlugin
 
 """
 Method Factory

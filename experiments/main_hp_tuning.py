@@ -13,7 +13,7 @@ import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
-import toolkit.utils as utils
+import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
 

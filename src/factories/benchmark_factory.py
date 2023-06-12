@@ -6,7 +6,7 @@ from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100, SplitImage
 from torchvision import transforms
 import os
 
-from factories.default_transforms import *
+from src.factories.default_transforms import *
 
 """
 Benchmarks factory

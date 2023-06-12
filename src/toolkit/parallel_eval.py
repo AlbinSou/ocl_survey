@@ -13,7 +13,7 @@ from avalanche.logging import TensorboardLogger
 from avalanche.models import SimpleMLP
 from avalanche.training import Naive
 from avalanche.training.plugins import EvaluationPlugin
-from toolkit.json_logger import JSONLogger
+from src.toolkit.json_logger import JSONLogger
 
 
 class BlockingScheduler:
