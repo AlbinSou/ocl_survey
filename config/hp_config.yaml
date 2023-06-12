@@ -4,7 +4,7 @@ defaults:
   - strategy: er_ace.yaml
   - evaluation: nologger.yaml
   - optimizer: sgd.yaml
-  - model.yaml
+  - model: slimresnet18.yaml
   - experiment.yaml
   - hydra.yaml
 

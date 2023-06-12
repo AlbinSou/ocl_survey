@@ -83,22 +83,39 @@ def create_strategy(
     elif name == "er_ace":
         strategy = "ER_ACE"
         specific_args = utils.extract_kwargs(
-            ["alpha", "alpha_ramp", "batch_size_mem", "mem_size"], strategy_kwargs
+            ["alpha", "lr_ramp", "batch_size_mem", "mem_size"], strategy_kwargs
         )
 
-        alpha_scheduler = LambdaScheduler(
+        #alpha_scheduler = LambdaScheduler(
+        #    plugin=None,
+        #    scheduled_key="alpha",
+        #    start_value=specific_args["alpha"],
+        #    coefficient=specific_args.pop("alpha_ramp"),
+        #    min_value=0.0,
+        #    max_value=1.0,
+        #    schedule_by="experience",
+        #    reset_at=None,
+        #)
+
+        def applier_func(obj, key, value):
+            for group in obj.optimizer.param_groups:
+                group["lr"] = value
+            return
+
+        lr_scheduler = LambdaScheduler(
             plugin=None,
-            scheduled_key="alpha",
-            start_value=specific_args["alpha"],
-            coefficient=specific_args.pop("alpha_ramp"),
+            scheduled_key="lr",
+            start_value=optimizer.param_groups[0]["lr"],
+            coefficient=specific_args.pop("lr_ramp"),
             min_value=0.0,
             max_value=1.0,
             schedule_by="experience",
             reset_at=None,
+            schedule_applier_func=applier_func,
         )
 
         strategy_dict.update(specific_args)
-        plugins.append(alpha_scheduler)
+        plugins.append(lr_scheduler)
 
     elif name == "linear_probing":
         strategy = "Cumulative"
