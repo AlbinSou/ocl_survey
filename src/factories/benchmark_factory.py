@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Sequence, Any, Union
-from avalanche.benchmarks import benchmark_with_validation_stream
-from avalanche.benchmarks.classic import SplitCIFAR10, SplitCIFAR100, SplitImageNet
-from torchvision import transforms
 import os
+from typing import Any, Optional, Sequence, Union
 
+from torchvision import transforms
+
+from avalanche.benchmarks import benchmark_with_validation_stream
+from avalanche.benchmarks.classic import (SplitCIFAR10, SplitCIFAR100,
+                                          SplitImageNet, SplitTinyImageNet)
 from src.factories.default_transforms import *
+
 
 """
 Benchmarks factory
 """
+
 
 def create_benchmark(
     benchmark_name: str,
@@ -112,6 +116,34 @@ def create_benchmark(
             train_transform=train_transform,
             eval_transform=eval_transform,
             dataset_root=os.path.join(dataset_root, "imagenet_avalanche"),
+        )
+
+    elif benchmark_name == "split_tinyimagenet":
+        if not use_transforms:
+            train_transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
+                    ),
+                ]
+            )
+            eval_transform = train_transform
+        else:
+            train_transform = default_cifar100_train_transform
+            eval_transform = default_cifar100_eval_transform
+
+        benchmark = SplitTinyImageNet(
+            n_experiences,
+            return_task_id=return_task_id,
+            seed=seed,
+            fixed_class_order=fixed_class_order,
+            shuffle=shuffle,
+            class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+            class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+            dataset_root=dataset_root,
         )
 
     assert benchmark is not None
