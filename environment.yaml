@@ -1,0 +1,31 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python==3.10
+  - tqdm
+  - conda-forge::gputil
+  - conda-forge::quadprog
+  - matplotlib
+  - numpy
+  - scikit-learn
+  - psutil
+  - wandb
+  - tensorboard[version='>=1.15']
+  - conda-forge::pycocotools
+  - conda-forge::torchmetrics
+  - pip
+  - ca-certificates
+  - certifi
+  - openssl
+  - pip:
+      - pytorchcv
+      - gdown
+      - gym
+      - typing_extensions==4.4.0
+      - lvis
+      - dill
+      - higher
+      - hydra-core
+      - ray[tune]
+      - jsonlines 
