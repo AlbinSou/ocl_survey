@@ -1,23 +1,41 @@
 # OCL Survey Code Base Instructions
 
-# Install instructions
+# Install instructions (Witchery)
 
-Install avalanche for developers as indicated on https://avalanche.continualai.org/getting-started/how-to-install
-
-Install ray and hydra
+Create a new environment with python 3.10
 
 ```
-pip install hydra-core
-pip install -U "ray[tune]"
+conda create -n ocl_survey python=3.10
+conda activate ocl_survey
 ```
 
-Add to your python path the ocl_survey directory and the avalanche directory
+- To not lose sanity:
+
+```
+conda install mamba
+```
+
+- Then, follow the steps in this order
+
+```
+mamba install matplotlib
+pip install torch torchvision
+mamba env update -f environment.yaml
+```
+
+- Add to your python path the ocl_survey directory and the avalanche directory
 
 ```
 conda env config vars set PYTHONPATH=/home/.../ocl_survey:/home/ocl_survey/avalanche.git
 ```
 
-Change the content of the files config/results.yaml and config/benchmarks/root.yaml so that they point to the results and data directory of your machine
+- Change the content of the files config/results.yaml and config/benchmarks/root.yaml so that they point to the results and data directory of your machine
+- Test the environment by launching main.py
+
+```
+cd experiments/
+python main.py
+```
 
 # Structure
 
