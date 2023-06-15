@@ -29,7 +29,7 @@ mamba env update -f environment.yaml
 conda env config vars set PYTHONPATH=/home/.../ocl_survey:/home/ocl_survey/avalanche.git
 ```
 
-- Change the content of the files config/results.yaml and config/benchmarks/root.yaml so that they point to the results and data directory of your machine
+- Add a deploy config in the config/deploy folder, precising results and dataset path
 - Test the environment by launching main.py
 
 ```
@@ -56,7 +56,7 @@ The code is structured as follows:
     - optimizer/ # Contains optimizer-specific config files (one per optimizer type)
     - evaluation/ # Contains evaluation config files (no evaluation, non parallel evaluation, parallel evaluation)
     - benchmarks/ # Contains benchmark relative config (one per benchmark)
-        - root.yaml # Put here the root of the data dir from which the datasets will be fetched
+    - deploy/ # Folder to precise results and dataset path
     - scheduler/ # Contains learning rate scheduling relative args (one per scheduler)
 - experiments/
     - main.py # Main entry point for every experiments, no modifications should be needed in this
