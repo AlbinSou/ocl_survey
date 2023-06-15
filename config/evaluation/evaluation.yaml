@@ -2,9 +2,11 @@ peval_mode: experience
 eval_every: -1
 metrics: 
   - accuracy_metrics
+  - cumulative_accuracy
   - loss_metrics
   - clock
 loggers_strategy:
   - interactive
   - text
   - tensorboard
+  - json

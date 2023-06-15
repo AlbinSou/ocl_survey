@@ -5,9 +5,11 @@ import hydra
 import numpy as np
 import omegaconf
 import ray
+from omegaconf import OmegaConf
 from ray import tune
 from ray.air import session
 from ray.tune.search.hyperopt import HyperOptSearch
+import yaml
 
 import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
@@ -16,29 +18,23 @@ import src.factories.model_factory as model_factory
 import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
+from experiments.spaces import *
+
+CONFIG_PATH = "../config"
+
 
 def update_config(ray_config, config):
     for key, item in ray_config.items():
         config[key].update(item)
 
 
-@hydra.main(config_path="../config", config_name="hp_config.yaml")
+@hydra.main(config_path=CONFIG_PATH, config_name="hp_config.yaml")
 def main(config):
-    space = {
-        "optimizer": {
-            "lr": tune.loguniform(1e-3, 1.0),
-        },
-        "strategy": {
-            "train_epochs": tune.randint(1, 10),
-            "lr_ramp": tune.sample_from(
-                lambda spec: float(np.exp(
-                    np.random.uniform(
-                        np.log(1e-8), np.log((spec.config.optimizer.lr - 1e-5) / 1500)
-                    )
-                ))
-            ),
-        },
-    }
+    try:
+        space = globals()[f"{config.strategy.name}_search_space"]
+        print(space)
+    except KeyError:
+        raise Exception("First define your search space as strategy_search_space in experiment/spaces.py")
 
     ray.init(num_gpus=1, num_cpus=12)
 
@@ -50,12 +46,18 @@ def main(config):
             {"gpu": 0.15, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
-            num_samples=50, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=1, max_concurrent_trials=8, search_alg=hyperopt_search
         ),
         param_space=space,
     )
 
     results = tuner.fit()
+
+    filename = os.path.join(CONFIG_PATH, "best_configs", f"{config.strategy.name}.yaml")
+
+    with open(filename, "w") as f:
+        f.write("# @package _global_\n")
+        yaml.dump(results.get_best_result().config, f)
 
 
 def train_function(ray_config, config):
@@ -94,13 +96,6 @@ def train_function(ray_config, config):
         str(config.experiment.seed),
     )
 
-    # if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
-    #    os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
-    # if not os.path.isdir(logdir):
-    #    os.mkdir(logdir)
-
-    # omegaconf.OmegaConf.save(config, os.path.join(logdir, "config.yml"))
-
     strategy = method_factory.create_strategy(
         model=model,
         optimizer=optimizer,
@@ -116,7 +111,7 @@ def train_function(ray_config, config):
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(
-        scenario.train_stream[: config.experiment.stop_at_experience + 1]
+        scenario.train_stream[:config.experiment.stop_at_experience]
     ):
         ocl_scenario = OnlineCLScenario(
             original_streams=batch_streams,

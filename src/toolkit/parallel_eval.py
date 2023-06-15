@@ -83,7 +83,7 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         do_initial=False,
         num_actors=1,
         peval_mode="experience",
-        max_launched=50,
+        max_launched=20,
         num_gpus=0.1,
         num_cpus=2,
         **actor_args

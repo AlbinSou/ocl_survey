@@ -115,7 +115,7 @@ def create_benchmark(
             class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
             train_transform=train_transform,
             eval_transform=eval_transform,
-            dataset_root=os.path.join(dataset_root, "imagenet_avalanche"),
+            dataset_root=dataset_root,
         )
 
     elif benchmark_name == "split_tinyimagenet":
