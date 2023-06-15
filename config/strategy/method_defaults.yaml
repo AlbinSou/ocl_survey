@@ -1,5 +1,5 @@
 mem_size: 2000
 train_mb_size: 32
-eval_mb_size: 32
+eval_mb_size: 128
 train_epochs: 3
 device: cuda

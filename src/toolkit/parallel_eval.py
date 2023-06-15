@@ -13,7 +13,7 @@ from avalanche.logging import TensorboardLogger
 from avalanche.models import SimpleMLP
 from avalanche.training import Naive
 from avalanche.training.plugins import EvaluationPlugin
-from toolkit.json_logger import JSONLogger
+from src.toolkit.json_logger import JSONLogger
 
 
 class BlockingScheduler:
@@ -47,11 +47,7 @@ class EvaluationActor(object):
     are called. Methods on the same actor will share state with one another,
     as shown below."""
 
-    def __init__(
-        self,
-        evaluator, 
-        **strat_args
-    ):
+    def __init__(self, evaluator, **strat_args):
         """
         Constructor.
         :param strat_args: arguments of the strategy
@@ -99,19 +95,19 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param peval_mode: one of {'epoch', 'iteration', 'experience'}. Decides whether 
+        :param peval_mode: one of {'epoch', 'iteration', 'experience'}. Decides whether
             the periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='experience').
         :param do_initial: whether to evaluate before each `train` call.
             Occasionally needed becuase some metrics need to know the
             accuracy before training.
         :param num_actors: number of evaluation actors to use. !CARE! if more than
-            one actor is used, it will be unable to compute metrics that depend on 
+            one actor is used, it will be unable to compute metrics that depend on
             several evaluation steps (like stability metrics).
         :param num_actors: number of evaluation actors to use. !CARE! if more than
-            one actor is used, it will be unable to compute metrics that depend on 
+            one actor is used, it will be unable to compute metrics that depend on
             several evaluation steps (like stability metrics).
-        :param mode: evaluate after every experience or after 
+        :param mode: evaluate after every experience or after
             every iteration (default: experience)
         :param max_launched: Maximum number of tasks scheduled to avoid OOM
         :param num_cpus: amount of cpus per actor
@@ -123,7 +119,6 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         self.num_cpus = num_cpus
         self.peval_mode = peval_mode
         assert peval_mode in ["iteration", "experience"]
-        self.num_actors = num_actors
 
         self.evaluator = EvaluationPlugin(
             *metrics,
@@ -131,15 +126,15 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         )
 
         self.eval_actors = self.create_actors(
-            actor_args, num_actors, 
+            actor_args,
+            num_actors,
         )
 
         self.eval_every = eval_every
         self.do_initial = do_initial and eval_every > -1
+        self.eval_index = 0
 
         self.scheduler = BlockingScheduler(max_launched=max_launched)
-        #atexit.register(self.write_actor_logs)
-
 
     def after_training_exp(self, strategy, **kwargs):
         """Final eval after a learning experience."""
@@ -158,7 +153,7 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         clock_ref = ray.put(strategy.clock)
         for stream_ref in self.stream_refs:
             # Strategy model
-            actor = self.eval_actors[strategy.clock.train_iterations % self.num_actors]
+            actor = self.eval_actors[self.eval_index % self.num_actors]
 
             self.scheduler.schedule(
                 actor.eval,
@@ -168,6 +163,11 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
                 persistent_workers=True if kwargs["num_workers"] > 0 else False,
                 **kwargs,
             )
+        self.eval_index += 1
+
+    @property
+    def num_actors(self):
+        return len(self.eval_actors)
 
     def _maybe_peval(self, strategy, counter, **kwargs):
         if self.eval_every > 0 and counter % self.eval_every == 0:
@@ -187,15 +187,6 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         for i in range(num_actors):
             actor = EvaluationActor.options(
                 num_cpus=self.num_cpus, num_gpus=self.num_gpus
-            ).remote(
-                evaluator=self.evaluator, **actor_args
-            )
+            ).remote(evaluator=self.evaluator, **actor_args)
             actors.append(actor)
         return actors
-
-    #def write_actor_logs(self):
-    #    tasks = []
-    #    for a in self.eval_actors:
-    #        t = a.write_files.remote()
-    #        tasks.append(t)
-    #    ray.get(tasks)

@@ -2,6 +2,7 @@
 import os
 
 import hydra
+import numpy as np
 import omegaconf
 import ray
 from ray import tune
@@ -12,8 +13,9 @@ import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
-import toolkit.utils as utils
+import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
+
 
 def update_config(ray_config, config):
     for key, item in ray_config.items():
@@ -23,17 +25,19 @@ def update_config(ray_config, config):
 @hydra.main(config_path="../config", config_name="hp_config.yaml")
 def main(config):
     space = {
-        "strategy": {
-            "alpha": tune.uniform(0.2, 0.9),
-            #"alpha_ramp": tune.uniform(-0.06, 0.06),#For per-experience
-            "alpha_ramp": tune.uniform(-1/1562, 1/1562),#For full-stream ramp
-            "train_epochs": tune.randint(1, 10),
-        },
         "optimizer": {
             "lr": tune.loguniform(1e-3, 1.0),
         },
-        #"alpha_ramp": hp.uniform("alpha_ramp", -2e-4, 2e-4),
-        # "beta": hp.uniform("beta", 0.0, 1.0),
+        "strategy": {
+            "train_epochs": tune.randint(1, 10),
+            "lr_ramp": tune.sample_from(
+                lambda spec: float(np.exp(
+                    np.random.uniform(
+                        np.log(1e-8), np.log((spec.config.optimizer.lr - 1e-5) / 1500)
+                    )
+                ))
+            ),
+        },
     }
 
     ray.init(num_gpus=1, num_cpus=12)
@@ -42,7 +46,8 @@ def main(config):
 
     tuner = tune.Tuner(
         tune.with_resources(
-            tune.with_parameters(train_function, config=config), {"gpu": 0.15, "num_retries": 0}
+            tune.with_parameters(train_function, config=config),
+            {"gpu": 0.15, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
             num_samples=50, max_concurrent_trials=8, search_alg=hyperopt_search
@@ -57,8 +62,11 @@ def train_function(ray_config, config):
     # Update config with ray args
     update_config(ray_config, config)
 
-    if "T_max" in config["scheduler"]: 
+    if "T_max" in config["scheduler"]:
         config.scheduler.T_max = config.strategy.train_epochs + 1
+    if "lr_ramp" in config["strategy"]:
+        # Turn log uniform ramp (positive) to negative
+        config.strategy.lr_ramp *= -1
 
     utils.set_seed(config.experiment.seed)
 

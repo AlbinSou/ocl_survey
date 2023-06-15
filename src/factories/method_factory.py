@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 import avalanche.logging as logging
-import toolkit.utils as utils
+import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin, EarlyStoppingPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
@@ -17,13 +17,13 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.supervised import *
 from avalanche.evaluation.metrics.cumulative_accuracies import CumulativeAccuracyPluginMetric
 
-from toolkit.der_modified import DER
-from toolkit.erace_modified import ER_ACE
-from toolkit.json_logger import JSONLogger
-from toolkit.lambda_scheduler import LambdaScheduler
-from toolkit.parallel_eval import ParallelEvaluationPlugin
-from toolkit.probing import ProbingPlugin
-from toolkit.metrics import ClockLoggingPlugin
+from src.toolkit.der_modified import DER
+from src.toolkit.erace_modified import ER_ACE
+from src.toolkit.json_logger import JSONLogger
+from src.toolkit.lambda_scheduler import LambdaScheduler
+from src.toolkit.parallel_eval import ParallelEvaluationPlugin
+from src.toolkit.probing import ProbingPlugin
+from src.toolkit.metrics import ClockLoggingPlugin
 
 """
 Method Factory
@@ -83,22 +83,9 @@ def create_strategy(
     elif name == "er_ace":
         strategy = "ER_ACE"
         specific_args = utils.extract_kwargs(
-            ["alpha", "alpha_ramp", "batch_size_mem", "mem_size"], strategy_kwargs
+            ["alpha", "batch_size_mem", "mem_size"], strategy_kwargs
         )
-
-        alpha_scheduler = LambdaScheduler(
-            plugin=None,
-            scheduled_key="alpha",
-            start_value=specific_args["alpha"],
-            coefficient=specific_args.pop("alpha_ramp"),
-            min_value=0.0,
-            max_value=1.0,
-            schedule_by="experience",
-            reset_at=None,
-        )
-
         strategy_dict.update(specific_args)
-        plugins.append(alpha_scheduler)
 
     elif name == "linear_probing":
         strategy = "Cumulative"

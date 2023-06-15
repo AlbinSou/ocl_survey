@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.training.plugins import SupervisedPlugin
-from toolkit.schedules import linear_schedule
+from src.toolkit.schedules import linear_schedule
 
 
 class LambdaScheduler(SupervisedPlugin):
