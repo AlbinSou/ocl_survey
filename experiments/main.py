@@ -22,7 +22,8 @@ def main(config):
 
     plugins = []
 
-    scenario = benchmark_factory.create_benchmark(**config["benchmark"])
+    data_dir = os.path.join(config.benchmark.dataset_root, config.benchmark.dataset_name)
+    scenario = benchmark_factory.create_benchmark(**config["benchmark"].factory_args, dataset_root=data_dir)
 
     model = model_factory.create_model(**config["model"])
 
@@ -38,7 +39,7 @@ def main(config):
     if scheduler_plugin is not None:
         plugins.append(scheduler_plugin)
 
-    exp_name = config.strategy.name + "_" + config.benchmark.benchmark_name
+    exp_name = config.strategy.name + "_" + config.benchmark.factory_args.benchmark_name
 
     logdir = os.path.join(
         str(config.experiment.results_root),
@@ -47,11 +48,7 @@ def main(config):
     )
 
     if config.experiment.logdir is None:
-        if not os.path.isdir(os.path.join(str(config.experiment.results_root), exp_name)):
-            os.mkdir(os.path.join(str(config.experiment.results_root), exp_name))
-        if not os.path.isdir(logdir):
-            os.mkdir(logdir)
-
+        os.makedirs(logdir, exist_ok=True)
         utils.clear_tensorboard_files(logdir)
 
         # Add full results dir to config

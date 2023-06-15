@@ -1,6 +1,3 @@
-defaults:
-  - results.yaml
-
 experiment:
   seed: 0
   save_models: false
