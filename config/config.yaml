@@ -7,4 +7,4 @@ defaults:
   - model: slimresnet18.yaml
   - experiment.yaml
   - hydra.yaml
-  - deploy: unipi_dgx.yaml
+  - deploy: default.yaml

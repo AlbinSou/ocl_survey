@@ -1,5 +1,4 @@
 defaults:
-  - root.yaml
   - nc_scenario.yaml
 
 dataset_name: "cifar100"

@@ -1,5 +1,4 @@
 defaults:
-  - root.yaml
   - nc_scenario.yaml
 
 benchmark_name: split_tinyimagenet
