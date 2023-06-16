@@ -46,7 +46,7 @@ def main(config):
             {"gpu": 0.15, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
-            num_samples=1, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=100, max_concurrent_trials=8, search_alg=hyperopt_search
         ),
         param_space=space,
     )
@@ -57,7 +57,7 @@ def main(config):
 
     with open(filename, "w") as f:
         f.write("# @package _global_\n")
-        yaml.dump(results.get_best_result().config, f)
+        yaml.dump(results.get_best_result(metric="final_accuracy", mode="max").config, f)
 
 
 def train_function(ray_config, config):
@@ -74,7 +74,8 @@ def train_function(ray_config, config):
 
     plugins = []
 
-    scenario = benchmark_factory.create_benchmark(**config["benchmark"])
+    data_dir = os.path.join(config.benchmark.dataset_root, config.benchmark.dataset_name)
+    scenario = benchmark_factory.create_benchmark(**config["benchmark"].factory_args, dataset_root=data_dir)
 
     model = model_factory.create_model(**config["model"])
 
@@ -88,7 +89,7 @@ def train_function(ray_config, config):
     if scheduler_plugin is not None:
         plugins.append(scheduler_plugin)
 
-    exp_name = config.strategy.name + "_" + config.benchmark.benchmark_name
+    exp_name = config.strategy.name + "_" + config.benchmark.factory_args.benchmark_name
 
     logdir = os.path.join(
         str(config.experiment.results_root),

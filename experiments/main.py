@@ -41,11 +41,17 @@ def main(config):
 
     exp_name = config.strategy.name + "_" + config.benchmark.factory_args.benchmark_name
 
-    logdir = os.path.join(
-        str(config.experiment.results_root),
-        exp_name,
-        str(config.experiment.seed),
-    )
+    if not config.experiment.debug:
+        logdir = os.path.join(
+            str(config.experiment.results_root),
+            exp_name,
+            str(config.experiment.seed),
+        )
+    else:
+        logdir = os.path.join(
+            str(config.experiment.results_root),
+            "debug",
+        )
 
     if config.experiment.logdir is None:
         os.makedirs(logdir, exist_ok=True)

@@ -5,6 +5,6 @@ defaults:
   - evaluation: evaluation.yaml
   - optimizer: sgd.yaml
   - model: slimresnet18.yaml
+  - deploy: default.yaml
   - experiment.yaml
   - hydra.yaml
-  - deploy: default.yaml

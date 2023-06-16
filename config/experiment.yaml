@@ -3,3 +3,4 @@ experiment:
   save_models: false
   train_online: true
   logdir: null
+  debug: false

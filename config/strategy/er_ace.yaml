@@ -3,5 +3,3 @@ defaults:
 
 name: er_ace
 alpha: 0.5
-lr_ramp: 0.0000001
-batch_size_mem: 32

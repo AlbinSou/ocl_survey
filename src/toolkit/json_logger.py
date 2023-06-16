@@ -2,6 +2,7 @@
 import os
 from typing import TYPE_CHECKING, List
 import jsonlines
+import atexit
 
 import torch
 from avalanche.logging import BaseLogger
@@ -22,6 +23,9 @@ class JSONLogger(BaseLogger):
         self.filename = filename
         self.metric_dict = collections.defaultdict(lambda: {})
         self.autoupdate = autoupdate
+        
+        # Always write file at exit
+        atexit.register(self.update_json)
 
     def log_single_metric(self, name, value, x_plot):
         self.metric_dict[x_plot][name] = value
