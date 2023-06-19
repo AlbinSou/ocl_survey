@@ -1,0 +1,5 @@
+defaults:
+  - method_defaults.yaml
+
+name: scr
+temperature: 0.1

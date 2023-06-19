@@ -1,0 +1,5 @@
+defaults:
+  - method_defaults.yaml
+
+name: icarl
+use_task_boundaries: true
