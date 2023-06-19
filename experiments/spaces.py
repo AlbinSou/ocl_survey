@@ -9,9 +9,6 @@ classical_search_space = {
     "optimizer": {
         "lr": tune.loguniform(1e-3, 1.0),
     },
-    #"strategy": {
-    #    "batch_size_mem": tune.randint(10, 256),
-    #},
 }
 
 # With lr ramp
@@ -62,4 +59,16 @@ der_search_space_specific = {
 
 der_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), der_search_space_specific
+)
+
+# MIR
+
+mir_search_space_specific = {
+    "strategy": {
+        "subsample": tune.randint(10, 512),
+    }
+}
+
+mir_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), mir_search_space_specific
 )

@@ -71,6 +71,7 @@ def main(config):
         plugins=plugins,
         logdir=logdir,
         name=config.strategy.name,
+        dataset_name=config.benchmark.dataset_name,
         strategy_kwargs=config["strategy"],
         evaluation_kwargs=config["evaluation"],
     )
@@ -85,7 +86,7 @@ def main(config):
                 original_streams=batch_streams,
                 experiences=experience,
                 experience_size=config.strategy.train_mb_size,
-                access_task_boundaries=False,
+                access_task_boundaries=config.strategy.use_task_boundaries,
             )
             train_stream = ocl_scenario.train_stream
         else:

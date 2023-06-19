@@ -2,32 +2,39 @@
 
 import os
 from typing import List, Optional
-import ray
 
 import torch
 import torch.nn as nn
 
 import avalanche.logging as logging
+import kornia.augmentation as K
+import ray
 import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.training.plugins import MIRPlugin, SupervisedPlugin, ReplayPlugin, EarlyStoppingPlugin
-from avalanche.training.storage_policy import ClassBalancedBuffer
+from avalanche.evaluation.metrics.cumulative_accuracies import \
+    CumulativeAccuracyPluginMetric
+from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
+                                        ReplayPlugin, SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
+from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
-from avalanche.evaluation.metrics.cumulative_accuracies import CumulativeAccuracyPluginMetric
-
-from src.toolkit.der_modified import DER
 from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
+from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
-from src.toolkit.metrics import ClockLoggingPlugin
 
 """
 Method Factory
 """
+
+DS_SIZES = {
+    "imagenet": (256, 256, 3),
+    "cifar100": (32, 32, 3),
+    "tinyimagenet": (64, 64, 3),
+}
 
 
 def create_strategy(
@@ -36,6 +43,7 @@ def create_strategy(
     plugins: Optional[List[SupervisedPlugin]] = None,
     logdir: str = None,
     name: str = None,
+    dataset_name: str = None,
     evaluation_kwargs=None,
     strategy_kwargs=None,
 ):
@@ -59,8 +67,11 @@ def create_strategy(
         specific_args = utils.extract_kwargs(
             ["mem_size", "batch_size_mem"], strategy_kwargs
         )
-        storage_policy = ClassBalancedBuffer(max_size=specific_args["mem_size"], adaptive_size=True)
-        replay_plugin = ReplayPlugin(**specific_args, storage_policy=storage_policy)
+        storage_policy = ClassBalancedBuffer(
+            max_size=specific_args["mem_size"], adaptive_size=True
+        )
+        replay_plugin = ReplayPlugin(
+            **specific_args, storage_policy=storage_policy)
         plugins.append(replay_plugin)
 
     elif name == "der":
@@ -87,6 +98,25 @@ def create_strategy(
         )
         strategy_dict.update(specific_args)
 
+    elif name == "scr":
+        strategy = "SCR"
+        specific_args = utils.extract_kwargs(
+            ["batch_size_mem", "mem_size", "temperature"], strategy_kwargs
+        )
+        scr_transforms = torch.nn.Sequential(
+            K.RandomResizedCrop(
+                size=(
+                    DS_SIZES[dataset_name][0],
+                    DS_SIZES[dataset_name][0]),
+                scale=(0.2, 1.0),
+            ),
+            K.RandomHorizontalFlip(),
+            K.ColorJitter(0.4, 0.4, 0.4, 0.1, p=0.8),
+            K.RandomGrayscale(p=0.2),
+        )
+        specific_args["augmentations"] = scr_transforms
+        strategy_dict.update(specific_args)
+
     elif name == "linear_probing":
         strategy = "Cumulative"
         # For some reason this strategy does not accept peval mode
@@ -101,14 +131,15 @@ def create_strategy(
         )
         strategy_dict.update({"evaluator": evaluator})
 
-        probing_plugin = ProbingPlugin(logdir, prefix="model", reset_last_layer=True)
+        probing_plugin = ProbingPlugin(
+            logdir, prefix="model", reset_last_layer=True)
         plugins.append(probing_plugin)
 
         # Idk why for some tasks this fails
         # Overall, I got similar results with similar number of epochs
-        #strategy_dict["eval_every"] = 1
-        #early_stopping = EarlyStoppingPlugin(patience=5, val_stream_name="valid_stream", margin=0.03)
-        #plugins.append(early_stopping)
+        # strategy_dict["eval_every"] = 1
+        # early_stopping = EarlyStoppingPlugin(patience=5, val_stream_name="valid_stream", margin=0.03)
+        # plugins.append(early_stopping)
 
     if strategy_dict["evaluator"] is None:
         evaluator, parallel_eval_plugin = create_evaluator(
@@ -121,7 +152,6 @@ def create_strategy(
     if parallel_eval_plugin is not None:
         strategy_dict["eval_every"] = -1
         plugins.append(parallel_eval_plugin)
-
 
     cl_strategy = globals()[strategy](**strategy_dict, plugins=plugins)
 
@@ -141,15 +171,18 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
             loggers.append(logging.TensorboardLogger(logdir))
         if logger == "text":
             loggers.append(
-                logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w"))
+                logging.TextLogger(
+                    open(
+                        os.path.join(
+                            logdir,
+                            f"{prefix}.txt"),
+                        "w"))
             )
         if logger == "json":
             path = os.path.join(logdir, f"{prefix}.json")
             if os.path.isfile(path):
                 os.remove(path)
-            loggers.append(
-                JSONLogger(path, autoupdate=False)
-            )
+            loggers.append(JSONLogger(path, autoupdate=False))
     return loggers
 
 
@@ -185,7 +218,8 @@ def create_evaluator(
     """
     strategy_metrics = get_metrics(metrics)
     loggers_strategy = get_loggers(loggers_strategy, logdir, prefix="logs")
-    evaluator_strategy = EvaluationPlugin(*strategy_metrics, loggers=loggers_strategy)
+    evaluator_strategy = EvaluationPlugin(
+        *strategy_metrics, loggers=loggers_strategy)
 
     parallel_eval_plugin = None
     if parallel_evaluation:

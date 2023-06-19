@@ -22,7 +22,6 @@ from experiments.spaces import *
 
 CONFIG_PATH = "../config"
 
-
 def update_config(ray_config, config):
     for key, item in ray_config.items():
         config[key].update(item)
@@ -46,7 +45,7 @@ def main(config):
             {"gpu": 0.15, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
-            num_samples=100, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=200, max_concurrent_trials=8, search_alg=hyperopt_search
         ),
         param_space=space,
     )
@@ -103,6 +102,7 @@ def train_function(ray_config, config):
         plugins=plugins,
         logdir=logdir,
         name=config.strategy.name,
+        dataset_name=config.benchmark.dataset_name,
         strategy_kwargs=config["strategy"],
         evaluation_kwargs=config["evaluation"],
     )
@@ -118,7 +118,7 @@ def train_function(ray_config, config):
             original_streams=batch_streams,
             experiences=experience,
             experience_size=config.strategy.train_mb_size,
-            access_task_boundaries=False,
+            access_task_boundaries=config.strategy.use_task_boundaries,
         )
 
         strategy.train(

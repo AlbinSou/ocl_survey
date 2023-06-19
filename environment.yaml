@@ -30,3 +30,4 @@ dependencies:
       - ray[tune]
       - jsonlines 
       - deepmerge
+      - kornia
