@@ -1,0 +1,5 @@
+# @package _global_
+optimizer:
+  lr: 0.009621906930270686
+strategy:
+  alpha: 0.31465555900890024
