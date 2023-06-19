@@ -29,3 +29,4 @@ dependencies:
       - hydra-core
       - ray[tune]
       - jsonlines 
+      - deepmerge
