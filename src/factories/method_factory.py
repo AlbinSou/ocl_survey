@@ -31,9 +31,9 @@ Method Factory
 """
 
 DS_SIZES = {
-    "imagenet": (256, 256, 3),
-    "cifar100": (32, 32, 3),
-    "tinyimagenet": (64, 64, 3),
+    "split_imagenet": (256, 256, 3),
+    "split_cifar100": (32, 32, 3),
+    "split_tinyimagenet": (64, 64, 3),
 }
 
 

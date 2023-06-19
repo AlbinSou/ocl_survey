@@ -102,7 +102,7 @@ def train_function(ray_config, config):
         plugins=plugins,
         logdir=logdir,
         name=config.strategy.name,
-        dataset_name=config.benchmark.dataset_name,
+        dataset_name=config.benchmark.factory_args.benchmark_name,
         strategy_kwargs=config["strategy"],
         evaluation_kwargs=config["evaluation"],
     )
