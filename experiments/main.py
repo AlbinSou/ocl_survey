@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-import os
-import torch
 import argparse
+import os
 
 import hydra
 import numpy as np
 import omegaconf
 import ray
+import torch
 
 import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
@@ -14,6 +14,7 @@ import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
 import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
+from src.factories.benchmark_factory import DS_SIZES
 
 
 @hydra.main(config_path="../config", config_name="config.yaml")
@@ -22,10 +23,17 @@ def main(config):
 
     plugins = []
 
-    data_dir = os.path.join(config.benchmark.dataset_root, config.benchmark.dataset_name)
-    scenario = benchmark_factory.create_benchmark(**config["benchmark"].factory_args, dataset_root=data_dir)
+    data_dir = os.path.join(
+        config.benchmark.dataset_root, config.benchmark.dataset_name
+    )
+    scenario = benchmark_factory.create_benchmark(
+        **config["benchmark"].factory_args, dataset_root=data_dir
+    )
 
-    model = model_factory.create_model(**config["model"])
+    model = model_factory.create_model(
+        **config["model"],
+        input_size=DS_SIZES[config.benchmark.factory_args.benchmark_name],
+    )
 
     optimizer, scheduler_plugin = model_factory.get_optimizer(
         model,
@@ -64,7 +72,6 @@ def main(config):
     else:
         logdir = config.experiment.logdir
 
-
     strategy = method_factory.create_strategy(
         model=model,
         optimizer=optimizer,
@@ -94,7 +101,7 @@ def main(config):
 
         strategy.train(
             train_stream,
-            eval_streams=[scenario.valid_stream[:t+1]],
+            eval_streams=[scenario.valid_stream[: t + 1]],
             num_workers=0,
             drop_last=True,
         )

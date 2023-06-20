@@ -7,7 +7,7 @@ from ray import tune
 
 classical_search_space = {
     "optimizer": {
-        "lr": tune.loguniform(1e-3, 1.0),
+        "lr": tune.loguniform(1e-4, 1.0),
     },
 }
 
@@ -40,7 +40,7 @@ er_search_space = classical_search_space
 
 er_ace_search_space_specific = {
     "strategy": {
-        "alpha": tune.uniform(0.2, 0.8),
+        "alpha": tune.uniform(0.0, 1.0),
     }
 }
 
@@ -52,8 +52,8 @@ er_ace_search_space = always_merger.merge(
 
 der_search_space_specific = {
     "strategy": {
-        "alpha": tune.uniform(0.0, 1.0),
-        "beta": tune.uniform(0.0, 1.0),
+        "alpha": tune.loguniform(1e-9, 10),
+        "beta": tune.loguniform(1e-9, 10),
     }
 }
 
@@ -63,11 +63,7 @@ der_search_space = always_merger.merge(
 
 # MIR
 
-mir_search_space_specific = {
-    "strategy": {
-        "subsample": tune.randint(10, 512),
-    }
-}
+mir_search_space_specific = {}
 
 mir_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), mir_search_space_specific

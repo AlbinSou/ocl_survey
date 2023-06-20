@@ -25,16 +25,11 @@ from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
+from src.factories.benchmark_factory import DS_SIZES
 
 """
 Method Factory
 """
-
-DS_SIZES = {
-    "split_imagenet": (256, 256, 3),
-    "split_cifar100": (32, 32, 3),
-    "split_tinyimagenet": (64, 64, 3),
-}
 
 
 def create_strategy(

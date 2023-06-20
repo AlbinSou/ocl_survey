@@ -15,6 +15,7 @@ import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
+from src.factories.benchmark_factory import DS_SIZES
 import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
 
@@ -76,7 +77,10 @@ def train_function(ray_config, config):
     data_dir = os.path.join(config.benchmark.dataset_root, config.benchmark.dataset_name)
     scenario = benchmark_factory.create_benchmark(**config["benchmark"].factory_args, dataset_root=data_dir)
 
-    model = model_factory.create_model(**config["model"])
+    model = model_factory.create_model(
+        **config["model"],
+        input_size=DS_SIZES[config.benchmark.factory_args.benchmark_name],
+    )
 
     optimizer, scheduler_plugin = model_factory.get_optimizer(
         model,

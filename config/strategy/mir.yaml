@@ -2,4 +2,4 @@ defaults:
   - method_defaults.yaml
 
 name: mir
-subsample: 200
+subsample: 256

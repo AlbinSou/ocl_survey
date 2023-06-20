@@ -4,13 +4,16 @@ import torch
 import avalanche.models as models
 import torchvision.models as tvmodels
 import src.toolkit.utils as utils
+from src.toolkit.slim_resnet18 import SlimResNet18
+
+
 from avalanche.training.plugins import LRSchedulerPlugin
 from avalanche.models.dynamic_modules import IncrementalClassifier
 
 
-def create_model(model_type: str):
+def create_model(model_type: str, input_size):
     if model_type == "resnet18":
-        model = models.SlimResNet18(1)
+        model = SlimResNet18(1, input_size=input_size)
     if model_type == "resnet50":
         model = tvmodels.resnet50()
     last_layer_name = list(model.named_parameters())[-1][0].split(".")[0]

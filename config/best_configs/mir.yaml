@@ -1,5 +1,3 @@
 # @package _global_
 optimizer:
-  lr: 0.011295217163482365
-strategy:
-  subsample: 502
+  lr: 0.007429374119908457

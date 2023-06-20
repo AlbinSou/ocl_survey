@@ -15,6 +15,11 @@ from src.factories.default_transforms import *
 Benchmarks factory
 """
 
+DS_SIZES = {
+    "split_imagenet": (256, 256, 3),
+    "split_cifar100": (32, 32, 3),
+    "split_tinyimagenet": (64, 64, 3),
+}
 
 def create_benchmark(
     benchmark_name: str,
