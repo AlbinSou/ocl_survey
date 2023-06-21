@@ -21,6 +21,12 @@ DS_SIZES = {
     "split_tinyimagenet": (64, 64, 3),
 }
 
+DS_CLASSES = {
+    "split_imagenet": 1000,
+    "split_cifar100": 100,
+    "split_tinyimagenet": 200,
+}
+
 def create_benchmark(
     benchmark_name: str,
     n_experiences: int,

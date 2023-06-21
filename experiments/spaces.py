@@ -68,3 +68,16 @@ mir_search_space_specific = {}
 mir_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), mir_search_space_specific
 )
+
+# SCR
+
+scr_search_space_specific = {
+    "strategy": {
+        "temperature": tune.loguniform(1e-9, 10),
+        #"nmc_momentum": tune.loguniform(1e-9, 10),
+    }
+}
+
+scr_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), scr_search_space_specific
+)

@@ -9,6 +9,7 @@ import os
 
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.utils import AvalancheSubset
+from avalanche.models.dynamic_modules import IncrementalClassifier
 
 
 def set_seed(seed):
@@ -22,6 +23,18 @@ def set_seed(seed):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = False
+
+
+def get_last_layer_name(model):
+    last_layer_name = list(model.named_parameters())[-1][0].split(".")[0]
+
+    last_layer = getattr(model, last_layer_name)
+
+    if isinstance(last_layer, IncrementalClassifier):
+        in_features = last_layer.classifier.in_features
+    else:
+        in_features = last_layer.in_features
+    return last_layer_name, in_features
 
 
 def create_default_args(args_dict, additional_args=None):

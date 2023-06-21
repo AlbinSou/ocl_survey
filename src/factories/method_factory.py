@@ -3,12 +3,12 @@
 import os
 from typing import List, Optional
 
+import kornia.augmentation as K
+import ray
 import torch
 import torch.nn as nn
 
 import avalanche.logging as logging
-import kornia.augmentation as K
-import ray
 import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.evaluation.metrics.cumulative_accuracies import \
@@ -19,13 +19,16 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
+from avalanche.training.supervised import SCR
+from src.factories.benchmark_factory import DS_SIZES
 from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
-from src.factories.benchmark_factory import DS_SIZES
+from avalanche.models import SCRModel
+
 
 """
 Method Factory
@@ -65,14 +68,16 @@ def create_strategy(
         storage_policy = ClassBalancedBuffer(
             max_size=specific_args["mem_size"], adaptive_size=True
         )
-        replay_plugin = ReplayPlugin(
-            **specific_args, storage_policy=storage_policy)
+        replay_plugin = ReplayPlugin(**specific_args, storage_policy=storage_policy)
         plugins.append(replay_plugin)
 
     elif name == "der":
         strategy = "DER"
         # We have to use fixed classifier for this method
-        model.linear = nn.Linear(model.linear.classifier.in_features, 100)
+        last_layer_name, in_features = utils.get_last_layer_name(model)
+        setattr(
+            model, last_layer_name, nn.Linear(in_features, DS_CLASSES[dataset_name])
+        )
         specific_args = utils.extract_kwargs(
             ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
         )
@@ -95,14 +100,30 @@ def create_strategy(
 
     elif name == "scr":
         strategy = "SCR"
+
+        # Modify model to fit
+        last_layer_name, in_features = utils.get_last_layer_name(model)
+        setattr(model, last_layer_name, torch.nn.Identity())
+        projection_network = torch.nn.Sequential(
+            torch.nn.Linear(in_features, in_features),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Linear(in_features, 128),
+        )
+
+        # a NCM Classifier is used at eval time
+        model = SCRModel(
+            feature_extractor=model, projection=projection_network
+        )
+
+        strategy_dict["model"] = model
+
         specific_args = utils.extract_kwargs(
             ["batch_size_mem", "mem_size", "temperature"], strategy_kwargs
         )
+        strategy_dict.pop("criterion")
         scr_transforms = torch.nn.Sequential(
             K.RandomResizedCrop(
-                size=(
-                    DS_SIZES[dataset_name][0],
-                    DS_SIZES[dataset_name][0]),
+                size=(DS_SIZES[dataset_name][0], DS_SIZES[dataset_name][0]),
                 scale=(0.2, 1.0),
             ),
             K.RandomHorizontalFlip(),
@@ -126,8 +147,7 @@ def create_strategy(
         )
         strategy_dict.update({"evaluator": evaluator})
 
-        probing_plugin = ProbingPlugin(
-            logdir, prefix="model", reset_last_layer=True)
+        probing_plugin = ProbingPlugin(logdir, prefix="model", reset_last_layer=True)
         plugins.append(probing_plugin)
 
         # Idk why for some tasks this fails
@@ -166,12 +186,7 @@ def get_loggers(loggers_list, logdir, prefix="logs"):
             loggers.append(logging.TensorboardLogger(logdir))
         if logger == "text":
             loggers.append(
-                logging.TextLogger(
-                    open(
-                        os.path.join(
-                            logdir,
-                            f"{prefix}.txt"),
-                        "w"))
+                logging.TextLogger(open(os.path.join(logdir, f"{prefix}.txt"), "w"))
             )
         if logger == "json":
             path = os.path.join(logdir, f"{prefix}.json")
@@ -213,8 +228,7 @@ def create_evaluator(
     """
     strategy_metrics = get_metrics(metrics)
     loggers_strategy = get_loggers(loggers_strategy, logdir, prefix="logs")
-    evaluator_strategy = EvaluationPlugin(
-        *strategy_metrics, loggers=loggers_strategy)
+    evaluator_strategy = EvaluationPlugin(*strategy_metrics, loggers=loggers_strategy)
 
     parallel_eval_plugin = None
     if parallel_evaluation:

@@ -47,7 +47,15 @@ def main(config):
     if scheduler_plugin is not None:
         plugins.append(scheduler_plugin)
 
-    exp_name = config.strategy.name + "_" + config.benchmark.factory_args.benchmark_name
+    exp_name = (
+        config.strategy.name
+        + "_"
+        + config.benchmark.factory_args.benchmark_name
+        + "_"
+        + str(config.benchmark.factory_args.n_experiences)
+        + "_"
+        + str(config.strategy.mem_size)
+    )
 
     if not config.experiment.debug:
         logdir = os.path.join(

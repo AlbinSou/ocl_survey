@@ -16,8 +16,7 @@ def create_model(model_type: str, input_size):
         model = SlimResNet18(1, input_size=input_size)
     if model_type == "resnet50":
         model = tvmodels.resnet50()
-    last_layer_name = list(model.named_parameters())[-1][0].split(".")[0]
-    in_features = getattr(model, last_layer_name).in_features
+    last_layer_name, in_features = utils.get_last_layer_name(model)
     setattr(model, last_layer_name, IncrementalClassifier(in_features, 1))
     return model
 
