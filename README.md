@@ -56,6 +56,7 @@ The code is structured as follows:
     - optimizer/ # Contains optimizer-specific config files (one per optimizer type)
     - evaluation/ # Contains evaluation config files (no evaluation, non parallel evaluation, parallel evaluation)
     - benchmarks/ # Contains benchmark relative config (one per benchmark)
+    - experiments/ # Contains the overrides for given experiments (one per benchmark), i.e model, batch size etc..
     - deploy/ # Folder to precise results and dataset path
     - scheduler/ # Contains learning rate scheduling relative args (one per scheduler)
 - experiments/
@@ -70,19 +71,19 @@ The code is structured as follows:
 To launch an experiment, start from the default config file and change the part that needs to change
 
 ```
-python main.py strategy=er_ace evaluation=parallel
+python main.py strategy=er_ace experiment=split_cifar100 evaluation=parallel
 ```
 
 It's also possible to override more fine-grained arguments
 
 ```
-python main.py strategy=er_ace evaluation=parallel strategy.alpha=0.7 optimizer.lr=0.05
+python main.py strategy=er_ace experiment=split_cifar100 evaluation=parallel strategy.alpha=0.7 optimizer.lr=0.05
 ```
 
 Before running the script, you can display the full config with "-c job" option
 
 ```
-python main.py strategy=er_ace evaluation=parallel -c job
+python main.py strategy=er_ace experiment=split_cifar100 evaluation=parallel -c job
 ```
 
 Results will be saved in the directory specified in results.yaml. Under the following structure:
@@ -96,5 +97,5 @@ Results will be saved in the directory specified in results.yaml. Under the foll
 Modify the strategy specific search parameters, search range etc ... inside main_hp_tuning.py then run
 
 ```
-python main_hp_tuning.py strategy=er_ace
+python main_hp_tuning.py strategy=er_ace experiment=split_cifar100
 ```
