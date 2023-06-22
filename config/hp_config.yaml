@@ -1,12 +1,12 @@
 defaults:
-  - benchmark: split_cifar100.yaml
-  - strategy: er.yaml
-  - scheduler: null.yaml
+  - benchmark: null
+  - scheduler: null
+  - optimizer: null
+  - model: null
+  - strategy: null
   - evaluation: nologger.yaml
-  - optimizer: sgd.yaml
-  - model: slimresnet18.yaml
   - deploy: default.yaml
-  - experiment.yaml
+  - experiment: split_cifar100.yaml
   - hydra.yaml
 
 experiment:

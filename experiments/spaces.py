@@ -7,7 +7,7 @@ from ray import tune
 
 classical_search_space = {
     "optimizer": {
-        "lr": tune.loguniform(1e-4, 1.0),
+        "lr": tune.loguniform(1e-5, 1.0),
     },
 }
 
@@ -73,8 +73,12 @@ mir_search_space = always_merger.merge(
 
 scr_search_space_specific = {
     "strategy": {
-        "temperature": tune.loguniform(1e-9, 10),
-        #"nmc_momentum": tune.loguniform(1e-9, 10),
+        "temperature": tune.loguniform(1e-9, 2),
+        #"batch_size_mem": tune.sample_from(
+        #    lambda spec: np.random.randint(spec.config.strategy.train_mb_size, 500)
+        #),
+        "batch_size_mem": tune.randint(10, 300),
+        # "nmc_momentum": tune.loguniform(1e-9, 10),
     }
 }
 

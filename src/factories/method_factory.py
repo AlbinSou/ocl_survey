@@ -20,7 +20,7 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
 from avalanche.training.supervised import SCR
-from src.factories.benchmark_factory import DS_SIZES
+from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
 from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
@@ -54,10 +54,20 @@ def create_strategy(
     strategy_args = utils.extract_kwargs(
         ["train_mb_size", "train_epochs", "eval_mb_size", "device"], strategy_kwargs
     )
+
+    # Special care for batch size mem
+    if "batch_size_mem" in strategy_kwargs:
+        batch_size_mem = strategy_kwargs["batch_size_mem"]
+        if batch_size_mem is None:
+            strategy_kwargs["batch_size_mem"] = strategy_args["train_mb_size"]
+
+
     strategy_dict.update(strategy_args)
+
     strategy_eval_args = utils.extract_kwargs(
         ["eval_every", "peval_mode"], evaluation_kwargs
     )
+
     strategy_dict.update(strategy_eval_args)
 
     if name == "er":
@@ -79,14 +89,14 @@ def create_strategy(
             model, last_layer_name, nn.Linear(in_features, DS_CLASSES[dataset_name])
         )
         specific_args = utils.extract_kwargs(
-            ["alpha", "beta", "batch_size_mem", "mem_size"], strategy_kwargs
+            ["alpha", "beta", "mem_size", "batch_size_mem"], strategy_kwargs
         )
         strategy_dict.update(specific_args)
 
     elif name == "mir":
         strategy = "Naive"
         specific_args = utils.extract_kwargs(
-            ["batch_size_mem", "mem_size", "subsample"], strategy_kwargs
+            ["mem_size", "subsample", "batch_size_mem"], strategy_kwargs
         )
         mir_plugin = MIRPlugin(**specific_args)
         plugins.append(mir_plugin)
@@ -94,7 +104,7 @@ def create_strategy(
     elif name == "er_ace":
         strategy = "ER_ACE"
         specific_args = utils.extract_kwargs(
-            ["alpha", "batch_size_mem", "mem_size"], strategy_kwargs
+            ["alpha", "mem_size", "batch_size_mem"], strategy_kwargs
         )
         strategy_dict.update(specific_args)
 
@@ -118,7 +128,7 @@ def create_strategy(
         strategy_dict["model"] = model
 
         specific_args = utils.extract_kwargs(
-            ["batch_size_mem", "mem_size", "temperature"], strategy_kwargs
+            ["mem_size", "temperature", "batch_size_mem"], strategy_kwargs
         )
         strategy_dict.pop("criterion")
         scr_transforms = torch.nn.Sequential(

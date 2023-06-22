@@ -1,6 +1,6 @@
 mem_size: 2000
+batch_size_mem: null
 train_mb_size: 10
-batch_size_mem: 10
 eval_mb_size: 128
 train_epochs: 3
 device: cuda
