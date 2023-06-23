@@ -1,0 +1,5 @@
+# @package _global_
+#
+benchmark:
+  factory_args:
+    n_experiences: 1
