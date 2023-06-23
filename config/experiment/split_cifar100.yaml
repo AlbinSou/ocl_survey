@@ -15,3 +15,4 @@ evaluation:
 
 strategy:
   train_mb_size: 10
+  mem_size: 2000

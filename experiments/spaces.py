@@ -7,7 +7,7 @@ from ray import tune
 
 classical_search_space = {
     "optimizer": {
-        "lr": tune.loguniform(1e-5, 1.0),
+        "lr": tune.loguniform(1e-5, 0.1),
     },
 }
 
