@@ -14,4 +14,5 @@ evaluation:
   num_actors: 3
 
 strategy:
-  train_mb_size: 128
+  train_mb_size: 64
+  mem_size: 20000

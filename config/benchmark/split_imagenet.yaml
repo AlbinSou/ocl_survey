@@ -1,7 +1,7 @@
 defaults:
   - nc_scenario.yaml
 
-dataset_name: "imagenet_avalanche"
+dataset_name: "imagenet"
 
 factory_args:
   benchmark_name: split_imagenet
