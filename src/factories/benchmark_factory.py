@@ -162,7 +162,7 @@ def create_benchmark(
 
     if val_size > 0:
         benchmark = benchmark_with_validation_stream(
-            benchmark, validation_size=val_size
+            benchmark, validation_size=val_size, shuffle=True
         )
 
     return benchmark

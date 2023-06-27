@@ -11,8 +11,6 @@ import torch.nn as nn
 import avalanche.logging as logging
 import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.evaluation.metrics.cumulative_accuracies import \
-    CumulativeAccuracyPluginMetric
 from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
                                         ReplayPlugin, SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
@@ -20,6 +18,8 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
 from avalanche.training.supervised import SCR
+from avalanche.models import SCRModel
+
 from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
 from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
@@ -27,7 +27,7 @@ from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
-from avalanche.models import SCRModel
+from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
 
 
 """
@@ -48,7 +48,7 @@ def create_strategy(
     strategy_dict = {
         "model": model,
         "optimizer": optimizer,
-        "criterion": nn.CrossEntropyLoss(),
+        #"criterion": nn.CrossEntropyLoss(),
         "evaluator": None,
     }
     strategy_args = utils.extract_kwargs(
@@ -142,6 +142,13 @@ def create_strategy(
         )
         specific_args["augmentations"] = scr_transforms
         strategy_dict.update(specific_args)
+
+    elif name == "icarl":
+        strategy = "OnlineICaRL"
+        specific_args = utils.extract_kwargs(
+            ["mem_size"], strategy_kwargs
+        )
+        raise NotImplementedError()
 
     elif name == "linear_probing":
         strategy = "Cumulative"
