@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import types
-
 import torch
 import torchvision.models as tvmodels
 
@@ -9,21 +7,6 @@ import src.toolkit.utils as utils
 from avalanche.models.dynamic_modules import IncrementalClassifier
 from avalanche.training.plugins import LRSchedulerPlugin
 from src.toolkit.slim_resnet18 import SlimResNet18
-
-
-def _extract_features_from_model(classifier, classifier_name):
-    # Register a forward hook
-    def hook(module, input):
-        module.extracted_features = input[0]
-
-    classifier.register_forward_pre_hook(hook)
-
-    def feature_extraction_func(self, x):
-        # Do a forward pass but return the hook results instead
-        self.forward(x)
-        return getattr(self, classifier_name).extracted_features
-
-    return feature_extraction_func
 
 
 def create_model(model_type: str, input_size):
@@ -39,11 +22,6 @@ def create_model(model_type: str, input_size):
     classifier = IncrementalClassifier(in_features, 1)
 
     setattr(model, last_layer_name, classifier)
-
-    # Add feature extractor method to the models (ICARL needs it)
-    model.feature_extractor = types.MethodType(
-        _extract_features_from_model(classifier, last_layer_name), model
-    )
 
     return model
 

@@ -28,6 +28,7 @@ from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
 from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
+from src.toolkit.icarl import OnlineICaRL
 
 
 """
@@ -147,11 +148,26 @@ def create_strategy(
 
     elif name == "icarl":
         strategy = "OnlineICaRL"
+
         if "criterion" in strategy_dict:
             strategy_dict.pop("criterion")
+
+        strategy_dict.pop("peval_mode")
+
+        # Separate feature_extractor and classifier
+        model = strategy_dict.pop("model")
+
+        last_layer_name, in_features = utils.get_last_layer_name(model)
+        classifier = getattr(model, last_layer_name)
+        setattr(model, last_layer_name, nn.Identity())
+
+        strategy_dict["feature_extractor"] = model
+        strategy_dict["classifier"] = classifier
+
         specific_args = utils.extract_kwargs(
             ["mem_size"], strategy_kwargs
         )
+
         strategy_dict.update(specific_args)
 
     elif name == "linear_probing":
