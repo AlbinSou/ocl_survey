@@ -21,14 +21,13 @@ from avalanche.training.supervised import SCR
 from avalanche.models import SCRModel
 
 from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
-from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
 from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
-from src.toolkit.icarl import OnlineICaRL
+from src.strategies import ER_ACE, OnlineICaRL
 
 
 """
