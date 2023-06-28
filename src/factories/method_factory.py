@@ -48,7 +48,6 @@ def create_strategy(
     strategy_dict = {
         "model": model,
         "optimizer": optimizer,
-        #"criterion": nn.CrossEntropyLoss(),
         "evaluator": None,
     }
     strategy_args = utils.extract_kwargs(
@@ -130,7 +129,10 @@ def create_strategy(
         specific_args = utils.extract_kwargs(
             ["mem_size", "temperature", "batch_size_mem"], strategy_kwargs
         )
-        strategy_dict.pop("criterion")
+
+        if "criterion" in strategy_dict:
+            strategy_dict.pop("criterion")
+
         scr_transforms = torch.nn.Sequential(
             K.RandomResizedCrop(
                 size=(DS_SIZES[dataset_name][0], DS_SIZES[dataset_name][0]),
@@ -145,10 +147,12 @@ def create_strategy(
 
     elif name == "icarl":
         strategy = "OnlineICaRL"
+        if "criterion" in strategy_dict:
+            strategy_dict.pop("criterion")
         specific_args = utils.extract_kwargs(
             ["mem_size"], strategy_kwargs
         )
-        raise NotImplementedError()
+        strategy_dict.update(specific_args)
 
     elif name == "linear_probing":
         strategy = "Cumulative"
