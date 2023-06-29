@@ -2,6 +2,7 @@ defaults:
   - evaluation.yaml
 
 parallel_evaluation: true
+eval_mb_size: 128
 num_gpus: 0.2
 num_cpus: 1
 num_actors: 4

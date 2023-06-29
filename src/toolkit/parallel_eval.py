@@ -142,6 +142,7 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
 
     def before_training(self, strategy, **kwargs):
         self.stream_refs = []
+
         for el in strategy._eval_streams:
             self.stream_refs.append(ray.put(el))
 

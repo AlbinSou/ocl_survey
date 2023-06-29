@@ -11,8 +11,6 @@ import torch.nn as nn
 import avalanche.logging as logging
 import src.toolkit.utils as utils
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
-from avalanche.evaluation.metrics.cumulative_accuracies import \
-    CumulativeAccuracyPluginMetric
 from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
                                         ReplayPlugin, SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
@@ -20,14 +18,16 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
 from avalanche.training.supervised import SCR
+from avalanche.models import SCRModel
+
 from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
-from src.toolkit.erace_modified import ER_ACE
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
-from avalanche.models import SCRModel
+from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
+from src.strategies import ER_ACE, OnlineICaRL
 
 
 """
@@ -48,7 +48,6 @@ def create_strategy(
     strategy_dict = {
         "model": model,
         "optimizer": optimizer,
-        "criterion": nn.CrossEntropyLoss(),
         "evaluator": None,
     }
     strategy_args = utils.extract_kwargs(
@@ -130,7 +129,10 @@ def create_strategy(
         specific_args = utils.extract_kwargs(
             ["mem_size", "temperature", "batch_size_mem"], strategy_kwargs
         )
-        strategy_dict.pop("criterion")
+
+        if "criterion" in strategy_dict:
+            strategy_dict.pop("criterion")
+
         scr_transforms = torch.nn.Sequential(
             K.RandomResizedCrop(
                 size=(DS_SIZES[dataset_name][0], DS_SIZES[dataset_name][0]),
@@ -141,6 +143,30 @@ def create_strategy(
             K.RandomGrayscale(p=0.2),
         )
         specific_args["augmentations"] = scr_transforms
+        strategy_dict.update(specific_args)
+
+    elif name == "icarl":
+        strategy = "OnlineICaRL"
+
+        if "criterion" in strategy_dict:
+            strategy_dict.pop("criterion")
+
+        strategy_dict.pop("peval_mode")
+
+        # Separate feature_extractor and classifier
+        model = strategy_dict.pop("model")
+
+        last_layer_name, in_features = utils.get_last_layer_name(model)
+        classifier = getattr(model, last_layer_name)
+        setattr(model, last_layer_name, nn.Identity())
+
+        strategy_dict["feature_extractor"] = model
+        strategy_dict["classifier"] = classifier
+
+        specific_args = utils.extract_kwargs(
+            ["mem_size"], strategy_kwargs
+        )
+
         strategy_dict.update(specific_args)
 
     elif name == "linear_probing":

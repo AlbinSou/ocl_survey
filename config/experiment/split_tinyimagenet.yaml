@@ -5,7 +5,7 @@ defaults:
   - override /benchmark: split_tinyimagenet.yaml
   - override /scheduler: null.yaml
   - override /optimizer: sgd.yaml
-  - override /model: slimresnet18.yaml
+  - override /model: resnet18.yaml
   - _self_
 
 evaluation:
