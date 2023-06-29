@@ -9,9 +9,9 @@ defaults:
   - _self_
 
 evaluation:
-  num_gpus: 0.3
-  num_cpus: 1
-  num_actors: 3
+  num_gpus: 0.5
+  num_cpus: 4
+  num_actors: 4
 
 strategy:
   train_mb_size: 64
