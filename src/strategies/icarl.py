@@ -63,7 +63,10 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
 
         return self.criterion(predictions, one_hot)
 
-    def after_training_exp(self, strategy, **kwargs):
+    def before_training_exp(self, strategy, **kwargs):
+        if strategy.experience.current_experience == 0:
+            return
+
         if not at_task_boundary(strategy.experience):
             return
 
@@ -71,6 +74,8 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
             old_model = copy.deepcopy(strategy.model)
             self.old_model = old_model.to(strategy.device)
 
+        # Adapt old model to new experience
+        self.old_model = strategy.model_adaptation(self.old_model)
         self.old_model.load_state_dict(strategy.model.state_dict())
 
         self.old_classes += np.unique(strategy.experience.dataset.targets).tolist()
@@ -90,6 +95,7 @@ class OnlineICaRL(SupervisedTemplate):
         classifier: Module,
         optimizer: Optimizer,
         mem_size: int = 200,
+        momentum: float = 0.1,
         batch_size_mem: int = None,
         criterion=OnlineICaRLLossPlugin(),
         train_mb_size: int = 1,
@@ -147,7 +153,7 @@ class OnlineICaRL(SupervisedTemplate):
             storage_policy=storage_policy,
         )
 
-        icarl = _ICaRLPlugin(replay_plugin)
+        icarl = _ICaRLPlugin(replay_plugin, momentum)
 
         if plugins is None:
             plugins = [icarl, replay_plugin]
@@ -181,7 +187,7 @@ class _ICaRLPlugin(SupervisedPlugin):
     This plugin does not use task identities.
     """
 
-    def __init__(self, replay_plugin):
+    def __init__(self, replay_plugin, momentum: float = 1.0, num_batch_update=10):
         """
         :param memory_size: amount of patterns saved in the memory.
         :param buffer_transform: transform applied on buffer elements already
@@ -195,6 +201,8 @@ class _ICaRLPlugin(SupervisedPlugin):
         super().__init__()
 
         self.replay_plugin = replay_plugin
+        self.momentum = momentum
+        self.num_batch_update = num_batch_update
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         strategy.model.eval()
@@ -205,11 +213,16 @@ class _ICaRLPlugin(SupervisedPlugin):
     def compute_class_means(self, strategy):
         per_class_embeddings = {}
 
+        if len(self.replay_plugin.storage_policy.buffer) == 0:
+            return
+
         buffer_loader = DataLoader(
-            self.replay_plugin.storage_policy.buffer, 
-            batch_size=strategy.eval_mb_size
+            self.replay_plugin.storage_policy.buffer,
+            batch_size=strategy.eval_mb_size,
+            shuffle=True,
         )
 
+        num_batches_used = 0
         for batch_x, batch_y, batch_tid in buffer_loader:
             batch_x = batch_x.to(strategy.device)
             out_features = strategy.model.feature_extractor(batch_x)
@@ -223,8 +236,14 @@ class _ICaRLPlugin(SupervisedPlugin):
                         "total": len(class_features),
                     }
                 else:
-                    per_class_embeddings[int(class_id)]["sum"] += torch.sum(class_features, dim=0)
+                    per_class_embeddings[int(class_id)]["sum"] += torch.sum(
+                        class_features, dim=0
+                    )
                     per_class_embeddings[int(class_id)]["total"] += len(class_features)
+
+            num_batches_used += 1
+            if num_batches_used > self.num_batch_update:
+                break
 
         class_means = {}
         for class_id in per_class_embeddings:
@@ -233,6 +252,12 @@ class _ICaRLPlugin(SupervisedPlugin):
                 per_class_embeddings[class_id]["sum"]
                 / per_class_embeddings[class_id]["total"]
             )
-    
+
+            class_means[class_id] = class_means[class_id] / torch.norm(
+                class_means[class_id]
+            )
+
         if len(class_means) > 0:
-            strategy.model.eval_classifier.replace_class_means_dict(class_means)
+            strategy.model.eval_classifier.update_class_means_dict(
+                class_means, self.momentum
+            )
