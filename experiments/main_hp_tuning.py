@@ -36,14 +36,14 @@ def main(config):
     except KeyError:
         raise Exception("First define your search space as strategy_search_space in experiment/spaces.py")
 
-    ray.init(num_gpus=1, num_cpus=12)
+    ray.init(num_gpus=4, num_cpus=64)
 
     hyperopt_search = HyperOptSearch(metric="final_accuracy", mode="max")
 
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(train_function, config=config),
-            {"gpu": 0.15, "num_retries": 0},
+            {"gpu": 0.5, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
             num_samples=200, max_concurrent_trials=8, search_alg=hyperopt_search
@@ -53,7 +53,8 @@ def main(config):
 
     results = tuner.fit()
 
-    filename = os.path.join(CONFIG_PATH, "best_configs", f"{config.strategy.name}.yaml")
+    dataname = config.benchmark.dataset_name
+    filename = os.path.join(CONFIG_PATH, "best_configs", dataname, f"{config.strategy.name}.yaml")
 
     with open(filename, "w") as f:
         f.write("# @package _global_\n")
