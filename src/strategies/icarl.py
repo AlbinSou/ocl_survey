@@ -32,13 +32,19 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
         observed again in future training experiences.
     """
 
-    def __init__(self):
+    def __init__(self, lmb: float = 1.0):
+        """
+        param: lmb: modulates the strength of distillation loss
+        """
+
         super().__init__()
         self.criterion = BCELoss()
-
-        self.old_classes = []
+        self.old_classes = set()
+        self.new_classes = set()
         self.old_model = None
         self.old_logits = None
+
+        self.lmb = lmb
 
     def before_forward(self, strategy, **kwargs):
         if self.old_model is not None:
@@ -58,27 +64,47 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
 
         if self.old_logits is not None:
             old_predictions = torch.sigmoid(self.old_logits)
-            one_hot[:, self.old_classes] = old_predictions[:, self.old_classes]
+            one_hot[:, list(self.old_classes)] = old_predictions[
+                :, list(self.old_classes)
+            ]
+
+            one_hot_new = one_hot[:, list(self.new_classes)]
+            one_hot_old = one_hot[:, list(self.old_classes)]
+            predictions_new = predictions[:, list(self.new_classes)]
+            predictions_old = predictions[:, list(self.old_classes)]
             self.old_logits = None
 
-        return self.criterion(predictions, one_hot)
+            return (
+                self.criterion(predictions_new, one_hot_new)
+                + self.lmb*self.criterion(predictions_old, one_hot_old)
+            ) / 2
+
+        else:
+            return self.criterion(predictions, one_hot)
 
     def before_training_exp(self, strategy, **kwargs):
-        if strategy.experience.current_experience == 0:
-            return
+        if (
+            at_task_boundary(strategy.experience)
+            and strategy.clock.train_exp_counter != 0
+        ):
+            # When saving model, incorporate new classes to
+            # old classes BEFORE updating new classes
 
-        if not at_task_boundary(strategy.experience):
-            return
+            self.old_classes = self.old_classes.union(self.new_classes)
+            self.new_classes = set()
 
-        if self.old_model is None:
-            old_model = copy.deepcopy(strategy.model)
-            self.old_model = old_model.to(strategy.device)
+            if self.old_model is None:
+                old_model = copy.deepcopy(strategy.model)
+                self.old_model = old_model.to(strategy.device)
 
-        # Adapt old model to new experience
-        self.old_model = strategy.model_adaptation(self.old_model)
-        self.old_model.load_state_dict(strategy.model.state_dict())
+            # Adapt old model to new experience
+            self.old_model = copy.deepcopy(strategy.model)
+            # self.old_model = strategy.model_adaptation(self.old_model)
+            # self.old_model.load_state_dict(strategy.model.state_dict())
 
-        self.old_classes += np.unique(strategy.experience.dataset.targets).tolist()
+        self.new_classes = self.new_classes.union(
+            strategy.experience.classes_in_this_experience
+        )
 
 
 class OnlineICaRL(SupervisedTemplate):

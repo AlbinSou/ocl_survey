@@ -2,4 +2,5 @@ defaults:
   - method_defaults.yaml
 
 name: icarl
+lmb: 1.0
 use_task_boundaries: true

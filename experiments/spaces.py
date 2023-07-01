@@ -85,3 +85,15 @@ scr_search_space_specific = {
 scr_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), scr_search_space_specific
 )
+
+# ICARL
+
+icarl_search_space_specific = {
+    "strategy": {
+        "lmb": tune.loguniform(1e-9, 10),
+    }
+}
+
+icarl_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), icarl_search_space_specific
+)
