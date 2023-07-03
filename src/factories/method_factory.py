@@ -10,7 +10,7 @@ import torch.nn as nn
 
 import avalanche.logging as logging
 import src.toolkit.utils as utils
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, StreamTime
 from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
                                         ReplayPlugin, SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
@@ -23,11 +23,12 @@ from avalanche.models import SCRModel
 from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
-from src.toolkit.metrics import ClockLoggingPlugin
+from src.toolkit.metrics import ClockLoggingPlugin, TimeSinceStart
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
 from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
-from src.strategies import ER_ACE, OnlineICaRL
+from src.strategies import ER_ACE
+from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
 
 
 """
@@ -164,10 +165,13 @@ def create_strategy(
         strategy_dict["classifier"] = classifier
 
         specific_args = utils.extract_kwargs(
-            ["mem_size"], strategy_kwargs
+            ["mem_size", "lmb"], strategy_kwargs
         )
 
         strategy_dict.update(specific_args)
+
+        lmb = strategy_dict.pop("lmb")
+        strategy_dict["criterion"] = OnlineICaRLLossPlugin(lmb)
 
     elif name == "linear_probing":
         strategy = "Cumulative"
@@ -244,6 +248,8 @@ def get_metrics(metric_names):
             metrics.append(loss_metrics(epoch=True))
         elif m == "cumulative_accuracy":
             metrics.append(CumulativeAccuracyPluginMetric())
+        elif m == "time":
+            metrics.append(TimeSinceStart())
         elif m == "clock":
             metrics.append(ClockLoggingPlugin())
         else:

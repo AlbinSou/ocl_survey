@@ -5,6 +5,7 @@ metrics:
   - cumulative_accuracy
   - loss_metrics
   - clock
+  - time
 loggers_strategy:
   - interactive
   - text

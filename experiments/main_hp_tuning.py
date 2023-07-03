@@ -5,23 +5,23 @@ import hydra
 import numpy as np
 import omegaconf
 import ray
+import yaml
 from omegaconf import OmegaConf
 from ray import tune
 from ray.air import session
 from ray.tune.search.hyperopt import HyperOptSearch
-import yaml
 
 import avalanche.benchmarks.scenarios as scenarios
 import src.factories.benchmark_factory as benchmark_factory
 import src.factories.method_factory as method_factory
 import src.factories.model_factory as model_factory
-from src.factories.benchmark_factory import DS_SIZES
 import src.toolkit.utils as utils
 from avalanche.benchmarks.scenarios import OnlineCLScenario
-
 from experiments.spaces import *
+from src.factories.benchmark_factory import DS_SIZES
 
 CONFIG_PATH = "../config"
+
 
 def update_config(ray_config, config):
     for key, item in ray_config.items():
@@ -34,7 +34,9 @@ def main(config):
         space = globals()[f"{config.strategy.name}_search_space"]
         print(space)
     except KeyError:
-        raise Exception("First define your search space as strategy_search_space in experiment/spaces.py")
+        raise Exception(
+            "First define your search space as strategy_search_space in experiment/spaces.py"
+        )
 
     ray.init(num_gpus=4, num_cpus=64)
 
@@ -46,19 +48,25 @@ def main(config):
             {"gpu": 0.5, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
-            num_samples=200, max_concurrent_trials=8, search_alg=hyperopt_search
+            num_samples=200, max_concurrent_trials=6, search_alg=hyperopt_search
         ),
         param_space=space,
     )
 
     results = tuner.fit()
 
-    dataname = config.benchmark.dataset_name
-    filename = os.path.join(CONFIG_PATH, "best_configs", dataname, f"{config.strategy.name}.yaml")
+    filename = os.path.join(
+        CONFIG_PATH,
+        "best_configs",
+        str(config.benchmark.factory_args.benchmark_name),
+        f"{config.strategy.name}.yaml",
+    )
 
     with open(filename, "w") as f:
         f.write("# @package _global_\n")
-        yaml.dump(results.get_best_result(metric="final_accuracy", mode="max").config, f)
+        yaml.dump(
+            results.get_best_result(metric="final_accuracy", mode="max").config, f
+        )
 
 
 def train_function(ray_config, config):
@@ -75,8 +83,12 @@ def train_function(ray_config, config):
 
     plugins = []
 
-    data_dir = os.path.join(config.benchmark.dataset_root, config.benchmark.dataset_name)
-    scenario = benchmark_factory.create_benchmark(**config["benchmark"].factory_args, dataset_root=data_dir)
+    data_dir = os.path.join(
+        config.benchmark.dataset_root, config.benchmark.dataset_name
+    )
+    scenario = benchmark_factory.create_benchmark(
+        **config["benchmark"].factory_args, dataset_root=data_dir
+    )
 
     model = model_factory.create_model(
         **config["model"],
@@ -117,7 +129,7 @@ def train_function(ray_config, config):
 
     batch_streams = scenario.streams.values()
     for t, experience in enumerate(
-        scenario.train_stream[:config.experiment.stop_at_experience]
+        scenario.train_stream[: config.experiment.stop_at_experience]
     ):
         ocl_scenario = OnlineCLScenario(
             original_streams=batch_streams,
