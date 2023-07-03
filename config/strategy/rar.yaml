@@ -1,0 +1,9 @@
+defaults:
+  - method_defaults.yaml
+
+name: rar
+opt_lr: 0.1
+epsilon_fgsm: 0.03137
+beta_coef: 0.4
+decay_factor_fgsm: 1.0
+iter_fgsm: 2

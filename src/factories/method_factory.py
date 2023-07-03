@@ -14,7 +14,8 @@ from avalanche.evaluation.metrics import (StreamTime, accuracy_metrics,
                                           loss_metrics)
 from avalanche.models import SCRModel
 from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
-                                        ReplayPlugin, SupervisedPlugin)
+                                        RARPlugin, ReplayPlugin,
+                                        SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.storage_policy import ClassBalancedBuffer
@@ -120,7 +121,9 @@ def create_strategy(
         storage_policy = ClassBalancedBuffer(
             max_size=specific_args_replay["mem_size"], adaptive_size=True
         )
-        replay_plugin = ReplayPlugin(**specific_args_replay, storage_policy=storage_policy)
+        replay_plugin = ReplayPlugin(
+            **specific_args_replay, storage_policy=storage_policy
+        )
         lwf_plugin = LwFPlugin(**specific_args_lwf)
         plugins.append(replay_plugin)
         plugins.append(lwf_plugin)
@@ -185,6 +188,36 @@ def create_strategy(
 
         lmb = strategy_dict.pop("lmb")
         strategy_dict["criterion"] = OnlineICaRLLossPlugin(lmb)
+
+    elif name == "rar":
+        strategy = "Naive"
+
+        specific_args = utils.extract_kwargs(
+            [
+                "mem_size",
+                "batch_size_mem",
+                "opt_lr",
+                "beta_coef",
+                "decay_factor_fgsm",
+                "epsilon_fgsm",
+                "iter_fgsm",
+            ],
+            strategy_kwargs,
+        )
+
+        storage_policy = ClassBalancedBuffer(
+            max_size=specific_args["mem_size"], adaptive_size=True
+        )
+
+        last_layer_name, in_features = utils.get_last_layer_name(model)
+
+        rar_plugin = RARPlugin(
+            **specific_args,
+            name_ext_layer=last_layer_name,
+            storage_policy=storage_policy,
+        )
+
+        plugins.append(rar_plugin)
 
     elif name == "linear_probing":
         strategy = "Cumulative"

@@ -1,0 +1,7 @@
+defaults:
+  - method_defaults.yaml
+
+name: er_lwf
+alpha: 1
+temperature: 2
+use_task_boundaries: true
