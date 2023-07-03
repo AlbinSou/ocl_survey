@@ -18,6 +18,8 @@ dependencies:
   - ca-certificates
   - certifi
   - openssl
+  - seaborn
+  - jupyter
   - pip:
       - pytorchcv
       - gdown
