@@ -97,3 +97,16 @@ icarl_search_space_specific = {
 icarl_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), icarl_search_space_specific
 )
+
+# ER + LwF
+
+er_lwf_search_space_specific = {
+    "strategy": {
+        "alpha": tune.loguniform(1e-9, 10),
+        "temperature": tune.uniform(1, 2),
+    }
+}
+
+er_lwf_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), er_lwf_search_space_specific
+)

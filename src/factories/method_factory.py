@@ -10,7 +10,9 @@ import torch.nn as nn
 
 import avalanche.logging as logging
 import src.toolkit.utils as utils
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, StreamTime
+from avalanche.evaluation.metrics import (StreamTime, accuracy_metrics,
+                                          loss_metrics)
+from avalanche.models import SCRModel
 from avalanche.training.plugins import (EarlyStoppingPlugin, MIRPlugin,
                                         ReplayPlugin, SupervisedPlugin)
 from avalanche.training.plugins.evaluation import (EvaluationPlugin,
@@ -18,17 +20,16 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
 from avalanche.training.supervised import SCR
-from avalanche.models import SCRModel
-
-from src.factories.benchmark_factory import DS_SIZES, DS_CLASSES
+from src.factories.benchmark_factory import DS_CLASSES, DS_SIZES
+from src.strategies import ER_ACE
+from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
+from src.strategies.lwf import LwFPlugin
+from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin, TimeSinceStart
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
-from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
-from src.strategies import ER_ACE
-from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
 
 
 """
@@ -60,7 +61,6 @@ def create_strategy(
         batch_size_mem = strategy_kwargs["batch_size_mem"]
         if batch_size_mem is None:
             strategy_kwargs["batch_size_mem"] = strategy_args["train_mb_size"]
-
 
     strategy_dict.update(strategy_args)
 
@@ -108,6 +108,23 @@ def create_strategy(
         )
         strategy_dict.update(specific_args)
 
+    elif name == "er_lwf":
+        strategy = "Naive"
+        specific_args_replay = utils.extract_kwargs(
+            ["mem_size", "batch_size_mem"], strategy_kwargs
+        )
+        specific_args_lwf = utils.extract_kwargs(
+            ["alpha", "temperature"], strategy_kwargs
+        )
+
+        storage_policy = ClassBalancedBuffer(
+            max_size=specific_args_replay["mem_size"], adaptive_size=True
+        )
+        replay_plugin = ReplayPlugin(**specific_args_replay, storage_policy=storage_policy)
+        lwf_plugin = LwFPlugin(**specific_args_lwf)
+        plugins.append(replay_plugin)
+        plugins.append(lwf_plugin)
+
     elif name == "scr":
         strategy = "SCR"
 
@@ -121,9 +138,7 @@ def create_strategy(
         )
 
         # a NCM Classifier is used at eval time
-        model = SCRModel(
-            feature_extractor=model, projection=projection_network
-        )
+        model = SCRModel(feature_extractor=model, projection=projection_network)
 
         strategy_dict["model"] = model
 
@@ -164,9 +179,7 @@ def create_strategy(
         strategy_dict["feature_extractor"] = model
         strategy_dict["classifier"] = classifier
 
-        specific_args = utils.extract_kwargs(
-            ["mem_size", "lmb"], strategy_kwargs
-        )
+        specific_args = utils.extract_kwargs(["mem_size", "lmb"], strategy_kwargs)
 
         strategy_dict.update(specific_args)
 

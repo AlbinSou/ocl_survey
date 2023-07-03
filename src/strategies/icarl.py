@@ -99,8 +99,7 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
 
             # Adapt old model to new experience
             self.old_model = copy.deepcopy(strategy.model)
-            # self.old_model = strategy.model_adaptation(self.old_model)
-            # self.old_model.load_state_dict(strategy.model.state_dict())
+            self.old_model.eval()
 
         self.new_classes = self.new_classes.union(
             strategy.experience.classes_in_this_experience
@@ -213,7 +212,7 @@ class _ICaRLPlugin(SupervisedPlugin):
     This plugin does not use task identities.
     """
 
-    def __init__(self, replay_plugin, momentum: float = 1.0, num_batch_update=10):
+    def __init__(self, replay_plugin, momentum: float = 1.0, num_batch_update=-1):
         """
         :param memory_size: amount of patterns saved in the memory.
         :param buffer_transform: transform applied on buffer elements already
@@ -268,7 +267,7 @@ class _ICaRLPlugin(SupervisedPlugin):
                     per_class_embeddings[int(class_id)]["total"] += len(class_features)
 
             num_batches_used += 1
-            if num_batches_used > self.num_batch_update:
+            if num_batches_used > self.num_batch_update and self.num_batch_update > 0:
                 break
 
         class_means = {}
