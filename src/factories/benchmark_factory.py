@@ -142,7 +142,7 @@ def create_benchmark(
             eval_transform = train_transform
         else:
             train_transform = default_tinyimagenet_train_transform
-            eval_transform = default_cifar100_eval_transform
+            eval_transform = default_tinyimagenet_eval_transform
 
         benchmark = SplitTinyImageNet(
             n_experiences,

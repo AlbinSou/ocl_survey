@@ -20,7 +20,7 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
-from avalanche.training.supervised import SCR
+from avalanche.training.supervised.mer import MER
 from src.factories.benchmark_factory import DS_CLASSES, DS_SIZES
 from src.strategies import ER_ACE
 from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
@@ -218,6 +218,15 @@ def create_strategy(
         )
 
         plugins.append(rar_plugin)
+
+    elif name == "mer":
+        strategy = "MER"
+        specific_args = utils.extract_kwargs(
+            ["mem_size", "batch_size_mem", "n_inner_steps", "beta", "gamma"],
+            strategy_kwargs,
+        )
+
+        strategy_dict.update(specific_args)
 
     elif name == "linear_probing":
         strategy = "Cumulative"
