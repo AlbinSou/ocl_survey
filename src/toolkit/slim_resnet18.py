@@ -72,7 +72,16 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, nf * 2, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
-        self.linear = nn.Linear(nf * 8 * block.expansion * (self.input_size[1] // 32)**2, num_classes)
+
+        if input_size[1] == 32:
+            fs = 160
+        elif input_size[1] == 64 or input_size[1] == 84:
+            fs = 640
+        else:
+            raise AttributeError("Unknown input size for SlimResNet18")
+        
+        # nf * 8 * block.expansion * (self.input_size[1] // 32)**2
+        self.linear = nn.Linear(fs, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)

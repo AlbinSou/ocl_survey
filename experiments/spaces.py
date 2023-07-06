@@ -9,6 +9,9 @@ classical_search_space = {
     "optimizer": {
         "lr": tune.loguniform(1e-5, 0.1),
     },
+    #"strategy": {
+    #    "train_epochs": tune.randint(3, 10),
+    #}
 }
 
 # With lr ramp
@@ -73,11 +76,11 @@ mir_search_space = always_merger.merge(
 
 scr_search_space_specific = {
     "strategy": {
-        "temperature": tune.loguniform(1e-9, 2),
+        "temperature": tune.loguniform(0.01, 2),
         #"batch_size_mem": tune.sample_from(
         #    lambda spec: np.random.randint(spec.config.strategy.train_mb_size, 500)
         #),
-        "batch_size_mem": tune.randint(10, 300),
+        #"batch_size_mem": tune.randint(10, 300),
         # "nmc_momentum": tune.loguniform(1e-9, 10),
     }
 }
@@ -109,4 +112,20 @@ er_lwf_search_space_specific = {
 
 er_lwf_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), er_lwf_search_space_specific
+)
+
+# RAR
+
+rar_search_space_specific = {
+    "strategy": {
+        "opt_lr": tune.loguniform(1e-5, 0.1),
+        "epsilon_fgsm": tune.uniform(0.01, 0.1),
+        "beta_coef": tune.uniform(0.1, 1.0),
+        "decay_factor_fgsm": tune.uniform(0.5, 1.0),
+        "iter_fgsm": tune.randint(2, 10),
+    }
+}
+
+rar_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), rar_search_space_specific
 )

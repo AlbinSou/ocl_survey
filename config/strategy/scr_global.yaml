@@ -1,0 +1,5 @@
+# @package _global_
+#
+benchmark:
+  factory_args:
+    use_transforms: false

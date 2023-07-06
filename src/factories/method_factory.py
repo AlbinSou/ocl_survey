@@ -20,7 +20,7 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
-from avalanche.training.supervised.mer import MER
+# from avalanche.training.supervised.mer import MER
 from src.factories.benchmark_factory import DS_CLASSES, DS_SIZES
 from src.strategies import ER_ACE
 from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
@@ -31,6 +31,7 @@ from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin, TimeSinceStart
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
+from src.toolkit.sklearn_probing import SKLearnProbingPlugin
 
 
 """
@@ -228,10 +229,22 @@ def create_strategy(
 
         strategy_dict.update(specific_args)
 
+    elif name == "gdumb":
+        strategy = "GDumb"
+        strategy_dict["criterion"] = nn.CrossEntropyLoss()
+        specific_args = utils.extract_kwargs(
+            ["mem_size"],
+            strategy_kwargs,
+        )
+        strategy_dict.update(specific_args)
+
     elif name == "linear_probing":
         strategy = "Cumulative"
+
         # For some reason this strategy does not accept peval mode
         strategy_dict.pop("peval_mode")
+
+        strategy_dict["criterion"] = nn.CrossEntropyLoss()
 
         # Remake loggers so that they log results of probing in side directory
         new_logdir = os.path.join(logdir, "linear_probing")
@@ -242,14 +255,32 @@ def create_strategy(
         )
         strategy_dict.update({"evaluator": evaluator})
 
-        probing_plugin = ProbingPlugin(logdir, prefix="model", reset_last_layer=True)
-        plugins.append(probing_plugin)
+        # Schedule the number of train epochs to have constant training time per experience
+        def constant_compute_schedule(start_value, coefficient=None):
+            """
+            Returns a scheduling function that starts from start value
+            and increases or decreases with a ramp of given coefficient
+            """
 
-        # Idk why for some tasks this fails
-        # Overall, I got similar results with similar number of epochs
-        # strategy_dict["eval_every"] = 1
-        # early_stopping = EarlyStoppingPlugin(patience=5, val_stream_name="valid_stream", margin=0.03)
-        # plugins.append(early_stopping)
+            def _lambda(iter_count):
+                if iter_count == 0:
+                    return start_value
+                else:
+                    return start_value // iter_count
+
+            return _lambda
+
+        scheduler = LambdaScheduler(
+            None,
+            scheduled_key="train_epochs",
+            schedule_by="experience",
+            start_value=strategy_dict["train_epochs"],
+            scheduling_function=constant_compute_schedule,
+        )
+        plugins.append(scheduler)
+
+        probing_plugin = SKLearnProbingPlugin(logdir, prefix="model")
+        plugins.append(probing_plugin)
 
     if strategy_dict["evaluator"] is None:
         evaluator, parallel_eval_plugin = create_evaluator(

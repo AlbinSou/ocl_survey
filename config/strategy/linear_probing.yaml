@@ -1,3 +1,6 @@
+defaults:
+  - probing_global.yaml
+
 name: linear_probing
 train_epochs: 100
 train_mb_size: 64

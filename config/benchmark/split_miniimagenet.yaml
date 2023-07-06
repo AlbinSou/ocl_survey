@@ -1,0 +1,11 @@
+defaults:
+  - nc_scenario.yaml
+
+dataset_name: "imagenet_avalanche"
+
+factory_args:
+  benchmark_name: split_miniimagenet
+  n_experiences: 20
+  val_size: 0.05
+  use_transforms: true
+  fixed_class_order: null

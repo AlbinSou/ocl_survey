@@ -60,6 +60,15 @@ def extract_kwargs(extract, kwargs):
         init_dict.update({word: kwargs[word]})
     return init_dict
 
+def map_args(kwargs, keys):
+    """
+    Maps keys1 to keys2 in kwargs
+    """
+    for k1, k2 in keys.items():
+        assert k1 in kwargs
+        value = kwargs.pop(k1)
+        kwargs[k2] = value
+
 def clear_tensorboard_files(directory):
     for root, name, files in os.walk(directory):
         for f in files:

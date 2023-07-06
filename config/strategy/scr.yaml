@@ -1,5 +1,7 @@
 defaults:
   - method_defaults.yaml
+  - scr_global.yaml
 
 name: scr
-temperature: 0.1
+temperature: 1.0
+batch_size_mem: 118

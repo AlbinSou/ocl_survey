@@ -2,7 +2,7 @@
 
 defaults:
   - experiment.yaml
-  - override /benchmark: split_tinyimagenet.yaml
+  - override /benchmark: split_miniimagenet.yaml
   - override /scheduler: null.yaml
   - override /optimizer: sgd.yaml
   - override /model: slimresnet18.yaml
@@ -16,4 +16,4 @@ evaluation:
 strategy:
   train_epochs: 3
   train_mb_size: 10
-  mem_size: 4000
+  mem_size: 2000

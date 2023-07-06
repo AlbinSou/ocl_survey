@@ -1,0 +1,19 @@
+# @package _global_
+#
+experiment:
+  train_online: false
+  save_models: false
+
+strategy:
+  train_mb_size: 64
+  train_epochs: 1000
+
+optimizer:
+  lr: 0.001
+  type: AdamW
+  weight_decay: 2e-4
+
+hydra:
+  output_subdir: null
+  job:
+    chdir: false

@@ -1,0 +1,7 @@
+defaults:
+  - method_defaults.yaml
+
+name: mer
+beta: 0.1
+gamma: 0.1
+n_inner_steps: 5

@@ -29,7 +29,6 @@ class LambdaScheduler(SupervisedPlugin):
         self.plugin = plugin
         self.key = scheduled_key
         self.schedule_by = schedule_by
-        self.total_data = 0
         self.reset_at = reset_at
 
         if schedule_applier_func is not None:
