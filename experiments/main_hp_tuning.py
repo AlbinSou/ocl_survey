@@ -83,11 +83,9 @@ def train_function(ray_config, config):
 
     plugins = []
 
-    data_dir = os.path.join(
-        config.benchmark.dataset_root, config.benchmark.dataset_name
-    )
     scenario = benchmark_factory.create_benchmark(
-        **config["benchmark"].factory_args, dataset_root=data_dir
+        **config["benchmark"].factory_args,
+        dataset_root=config.benchmark.dataset_root,
     )
 
     model = model_factory.create_model(
