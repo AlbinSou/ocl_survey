@@ -117,6 +117,8 @@ class SKLearnProbingPlugin(SupervisedPlugin):
                 strategy.model, SKLearnLayer(sklearn_classifier)
             )
 
+            strategy.clock.train_iterations = strategy.experience.current_experience
+
         # Freeze the whole model except last classification layer
         for p in strategy.model.parameters():
             p.requires_grad = False

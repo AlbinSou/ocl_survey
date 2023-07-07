@@ -76,7 +76,7 @@ class OnlineICaRLLossPlugin(SupervisedPlugin):
 
             return (
                 self.criterion(predictions_new, one_hot_new)
-                + self.lmb*self.criterion(predictions_old, one_hot_old)
+                + self.lmb * self.criterion(predictions_old, one_hot_old)
             ) / 2
 
         else:
@@ -236,53 +236,85 @@ class _ICaRLPlugin(SupervisedPlugin):
 
     @torch.no_grad()
     def compute_class_means(self, strategy):
-        per_class_embeddings = {}
-
-        if len(self.replay_plugin.storage_policy.buffer) == 0:
-            return
-
-        buffer_loader = DataLoader(
-            self.replay_plugin.storage_policy.buffer,
-            batch_size=strategy.eval_mb_size,
-            shuffle=True,
-        )
-
-        num_batches_used = 0
-        for batch_x, batch_y, batch_tid in buffer_loader:
-            batch_x = batch_x.to(strategy.device)
-            out_features = strategy.model.feature_extractor(batch_x)
-            for class_id in torch.unique(batch_y):
-                id_select = batch_y == class_id
-                class_features = out_features[id_select]
-
-                if class_id not in per_class_embeddings:
-                    per_class_embeddings[int(class_id)] = {
-                        "sum": torch.sum(class_features, dim=0),
-                        "total": len(class_features),
-                    }
-                else:
-                    per_class_embeddings[int(class_id)]["sum"] += torch.sum(
-                        class_features, dim=0
-                    )
-                    per_class_embeddings[int(class_id)]["total"] += len(class_features)
-
-            num_batches_used += 1
-            if num_batches_used > self.num_batch_update and self.num_batch_update > 0:
-                break
-
         class_means = {}
-        for class_id in per_class_embeddings:
-            # Should we normalize somewhere ?
-            class_means[class_id] = (
-                per_class_embeddings[class_id]["sum"]
-                / per_class_embeddings[class_id]["total"]
-            )
 
-            class_means[class_id] = class_means[class_id] / torch.norm(
-                class_means[class_id]
+        # for each class
+        for dataset in self.replay_plugin.storage_policy.buffer_datasets:
+            dl = DataLoader(
+                dataset.eval(),
+                shuffle=False,
+                batch_size=strategy.eval_mb_size,
+                drop_last=False,
             )
+            num_els = 0
+            # for each mini-batch in each class
+            for x, y, _ in dl:
+                num_els += x.size(0)
+                # class-balanced buffer, label is the same across mini-batch
+                label = y[0].item()
+                out = strategy.model.feature_extractor(x.to(strategy.device))
+                out = torch.nn.functional.normalize(out, p=2, dim=1)
+                if label in class_means:
+                    class_means[label] += out.sum(0).cpu().detach().clone()
+                else:
+                    class_means[label] = out.sum(0).cpu().detach().clone()
+            class_means[label] /= float(num_els)
+            class_means[label] /= class_means[label].norm()
 
-        if len(class_means) > 0:
-            strategy.model.eval_classifier.update_class_means_dict(
-                class_means, self.momentum
-            )
+        strategy.model.eval_classifier.update_class_means_dict(class_means)
+
+    # @torch.no_grad()
+    # def compute_class_means(self, strategy):
+    #    per_class_embeddings = {}
+
+    #    if len(self.replay_plugin.storage_policy.buffer) == 0:
+    #        return
+
+    #    buffer_loader = DataLoader(
+    #        self.replay_plugin.storage_policy.buffer.eval(),
+    #        batch_size=strategy.eval_mb_size,
+    #        shuffle=True,
+    #    )
+
+    #    num_batches_used = 0
+    #    for batch_x, batch_y, batch_tid in buffer_loader:
+    #        batch_x = batch_x.to(strategy.device)
+    #        out_features = strategy.model.feature_extractor(batch_x)
+    #        for class_id in torch.unique(batch_y):
+    #            id_select = batch_y == class_id
+    #            class_features = out_features[id_select]
+
+    #            if class_id not in per_class_embeddings:
+    #                per_class_embeddings[int(class_id)] = {
+    #                    "sum": torch.sum(
+    #                        class_features,
+    #                        dim=0,
+    #                    ),
+    #                    "total": len(class_features),
+    #                }
+    #            else:
+    #                per_class_embeddings[int(class_id)]["sum"] += torch.sum(
+    #                    class_features, dim=0
+    #                )
+    #                per_class_embeddings[int(class_id)]["total"] += len(class_features)
+
+    #        num_batches_used += 1
+    #        if num_batches_used > self.num_batch_update and self.num_batch_update > 0:
+    #            break
+
+    #    class_means = {}
+    #    for class_id in per_class_embeddings:
+    #        # Should we normalize somewhere ?
+    #        class_means[class_id] = (
+    #            per_class_embeddings[class_id]["sum"]
+    #            / per_class_embeddings[class_id]["total"]
+    #        )
+
+    #        class_means[class_id] = class_means[class_id] / torch.norm(
+    #            class_means[class_id]
+    #        )
+
+    #    if len(class_means) > 0:
+    #        strategy.model.eval_classifier.update_class_means_dict(
+    #            class_means, self.momentum
+    #        )

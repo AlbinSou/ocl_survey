@@ -20,6 +20,16 @@ class ClockLoggingPlugin(SupervisedPlugin):
             )
         )
 
+        if strategy.experience is not None:
+            strategy.evaluator.publish_metric_value(
+                MetricValue(
+                    "Metric",
+                    "training_experience",
+                    strategy.experience.origin_experience.current_experience,
+                    x_plot=strategy.clock.train_iterations,
+                )
+            )
+
 class TimeSinceStart(SupervisedPlugin):
     def __init__(self):
         super().__init__()
