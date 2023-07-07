@@ -1,6 +1,5 @@
 # @package _global_
 optimizer:
-  lr: 0.23025472488927815
+  lr: 0.0817694849118531
 strategy:
-  batch_size_mem: 119
-  temperature: 0.022826470536072063
+  temperature: 0.17532258875378776

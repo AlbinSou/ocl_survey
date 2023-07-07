@@ -1,5 +1,5 @@
 # @package _global_
 optimizer:
-  lr: 0.05958498417322064
+  lr: 0.024841548604384433
 strategy:
-  alpha: 0.5018013073122791
+  alpha: 0.4514349464105061

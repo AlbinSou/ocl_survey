@@ -11,7 +11,7 @@ defaults:
 evaluation:
   num_gpus: 0.2
   num_cpus: 1
-  num_actors: 4
+  num_actors: 2
 
 strategy:
   train_epochs: 3

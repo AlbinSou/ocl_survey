@@ -38,14 +38,14 @@ def main(config):
             "First define your search space as strategy_search_space in experiment/spaces.py"
         )
 
-    ray.init(num_gpus=4, num_cpus=64)
+    ray.init(num_gpus=1, num_cpus=12)
 
     hyperopt_search = HyperOptSearch(metric="final_accuracy", mode="max")
 
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(train_function, config=config),
-            {"gpu": 0.5, "num_retries": 0},
+            {"gpu": 0.1, "num_retries": 0},
         ),
         tune_config=tune.TuneConfig(
             num_samples=200, max_concurrent_trials=6, search_alg=hyperopt_search

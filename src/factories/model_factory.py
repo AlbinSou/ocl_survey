@@ -65,10 +65,10 @@ def get_optimizer(
         )
 
     if scheduler is not None:
-        plugin_args = ["reset_scheduler", "reset_lr"]
+        plugin_args = ["reset_scheduler", "reset_lr", "step_granularity"]
         plugin_args = utils.extract_kwargs(plugin_args, kwargs_scheduler)
         scheduler_plugin = LRSchedulerPlugin(
-            scheduler, step_granularity="iteration", **plugin_args
+            scheduler, **plugin_args
         )
     else:
         scheduler_plugin = None
