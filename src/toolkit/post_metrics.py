@@ -80,6 +80,28 @@ def min_acc(dataframe, splits):
         df["Min_" + metric_name] = df.groupby("seed")[metric_name].cummin()
 
 
+def compute_AAA(
+    dataframe,
+    base_name="Top1_Acc_Stream/eval_phase/valid_stream/Task000",
+):
+    """
+    Computes average anytime accuracy
+    """
+    df = dataframe.sort_values(["seed", "mb_index"])
+    df["cumulative_sum"] = df.groupby("seed")[base_name].cumsum()
+    df["count"] = df.groupby("seed").cumcount() + 1
+    df["AAA"] = df["cumulative_sum"] / df["count"]
+    return df
+
+
+def compute_mean_std_metric(dataframe, metric_name, final_step=True):
+    df = dataframe
+    max_index = df["mb_index"].max()
+    mean = df.loc[df["mb_index"] == max_index, metric_name].mean()
+    std = df.loc[df["mb_index"] == max_index, metric_name].std()
+    return mean, std
+
+
 if __name__ == "__main__":
     results_dir = "/DATA/ocl_survey/er_split_cifar100_20_2000/"
 
