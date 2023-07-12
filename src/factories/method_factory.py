@@ -20,17 +20,17 @@ from avalanche.training.plugins.evaluation import (EvaluationPlugin,
                                                    default_evaluator)
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.supervised import *
-# from avalanche.training.supervised.mer import MER
+from avalanche.training.supervised.mer import MER
 from src.factories.benchmark_factory import DS_CLASSES, DS_SIZES
-from src.strategies import ER_ACE
-from src.strategies.icarl import OnlineICaRL, OnlineICaRLLossPlugin
-from src.strategies.lwf import LwFPlugin
+from src.strategies import (ER_ACE, AGEMPlugin, LwFPlugin, OnlineICaRL,
+                            OnlineICaRLLossPlugin)
 from src.toolkit.cumulative_accuracies import CumulativeAccuracyPluginMetric
 from src.toolkit.json_logger import JSONLogger
 from src.toolkit.lambda_scheduler import LambdaScheduler
 from src.toolkit.metrics import ClockLoggingPlugin, TimeSinceStart
 from src.toolkit.parallel_eval import ParallelEvaluationPlugin
 from src.toolkit.probing import ProbingPlugin
+from src.toolkit.review_trick import ReviewTrickPlugin
 from src.toolkit.sklearn_probing import SKLearnProbingPlugin
 
 
@@ -229,6 +229,15 @@ def create_strategy(
 
         strategy_dict.update(specific_args)
 
+    elif name == "agem":
+        strategy = "Naive"
+        specific_args = utils.extract_kwargs(
+            ["mem_size", "sample_size"],
+            strategy_kwargs,
+        )
+        agem_plugin = AGEMPlugin(**specific_args)
+        plugins.append(agem_plugin)
+
     elif name == "gdumb":
         strategy = "GDumb"
         strategy_dict["criterion"] = nn.CrossEntropyLoss()
@@ -281,6 +290,19 @@ def create_strategy(
 
         probing_plugin = SKLearnProbingPlugin(logdir, prefix="model")
         plugins.append(probing_plugin)
+
+    if name == "er_with_review":
+        strategy = "Naive"
+        specific_args = utils.extract_kwargs(
+            ["mem_size", "batch_size_mem"], strategy_kwargs
+        )
+        storage_policy = ClassBalancedBuffer(
+            max_size=specific_args["mem_size"], adaptive_size=True
+        )
+        replay_plugin = ReplayPlugin(**specific_args, storage_policy=storage_policy)
+        review_plugin = ReviewTrickPlugin(storage_policy=storage_policy, num_epochs=5)
+        plugins.append(replay_plugin)
+        plugins.append(review_plugin)
 
     if strategy_dict["evaluator"] is None:
         evaluator, parallel_eval_plugin = create_evaluator(

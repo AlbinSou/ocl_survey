@@ -77,7 +77,9 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
             y = true_y[idxs]
             logits_exp = predicted_y[idxs, :]
 
-            logits_exp = logits_exp[:, list(classes)]
+            # Careful this assumes the classes are in order
+            logits_exp = logits_exp[:, list(classes)[:logits_exp.shape[1]]]
+
             prediction = torch.argmax(logits_exp, dim=1)
 
             # Here remap predictions to true y range
@@ -151,6 +153,10 @@ class CumulativeAccuracyPluginMetric(
 
         self.classes_seen_so_far = self.classes_seen_so_far.union(new_classes)
         self.classes_splits[task_id] = self.classes_seen_so_far
+
+        for task, splits in self.classes_splits.items():
+            for idx, c in enumerate(list(splits)):
+                assert idx == c
 
         # Mark the strategy with class split
         # to inform CumulativeAccuracyPluginMetric

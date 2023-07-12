@@ -129,3 +129,12 @@ rar_search_space_specific = {
 rar_search_space = always_merger.merge(
     copy.deepcopy(classical_search_space), rar_search_space_specific
 )
+
+# AGEM
+
+agem_search_space_specific = {
+}
+
+agem_search_space = always_merger.merge(
+    copy.deepcopy(classical_search_space), agem_search_space_specific
+)

@@ -9,9 +9,9 @@ defaults:
   - _self_
 
 evaluation:
-  num_gpus: 0.2
+  num_gpus: 0.15
   num_cpus: 1
-  num_actors: 2
+  num_actors: 3
 
 strategy:
   train_epochs: 3

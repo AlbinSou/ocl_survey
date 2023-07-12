@@ -183,7 +183,14 @@ class ParallelEvaluationPlugin(SupervisedPlugin):
         actors = []
         # Make sure we use the "0" device for evaluation, actual devices will
         # be managed by ray
-        actor_args.update({"device": "cuda:0"})
+        if "device" in actor_args:
+            device = actor_args["device"]
+        else:
+            device = "cuda"
+
+        if device != "cpu":
+            actor_args.update({"device": "cuda:0"})
+
         # Create actors for the strategy model
         for i in range(num_actors):
             actor = EvaluationActor.options(
