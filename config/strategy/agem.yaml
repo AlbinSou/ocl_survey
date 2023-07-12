@@ -1,0 +1,5 @@
+defaults:
+  - method_defaults.yaml
+
+name: agem
+sample_size: 200

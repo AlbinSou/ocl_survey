@@ -1,0 +1,9 @@
+# @package _global_
+optimizer:
+  lr: 0.027749846445771498
+strategy:
+  beta_coef: 0.6714155973537946
+  decay_factor_fgsm: 0.8341119868012169
+  epsilon_fgsm: 0.052809717123257424
+  iter_fgsm: 2
+  opt_lr: 0.00012268439369287308
