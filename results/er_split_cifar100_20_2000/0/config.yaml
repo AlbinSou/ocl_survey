@@ -1,0 +1,60 @@
+benchmark:
+  factory_args:
+    return_task_id: false
+    shuffle: true
+    class_ids_from_zero_in_each_exp: false
+    class_ids_from_zero_from_first_exp: true
+    benchmark_name: split_cifar100
+    n_experiences: 20
+    val_size: 0.05
+    use_transforms: true
+    fixed_class_order: null
+  dataset_name: cifar100
+  dataset_root: /DATA/data
+scheduler:
+  type: null
+optimizer:
+  type: SGD
+  lr: 0.0598728574654861
+  momentum: 0.0
+  weight_decay: 0.0
+model:
+  model_type: slim_resnet18
+strategy:
+  mem_size: 2000
+  batch_size_mem: null
+  train_mb_size: 10
+  eval_mb_size: 128
+  train_epochs: 3
+  device: cuda
+  use_task_boundaries: false
+  name: er
+evaluation:
+  peval_mode: experience
+  eval_every: 1
+  metrics:
+  - accuracy_metrics
+  - cumulative_accuracy
+  - loss_metrics
+  - clock
+  - time
+  loggers_strategy:
+  - interactive
+  - text
+  - tensorboard
+  - json
+  parallel_evaluation: true
+  eval_mb_size: 128
+  device: cuda
+  num_gpus: 0.15
+  num_cpus: 1
+  num_actors: 3
+  loggers_parallel:
+  - json
+experiment:
+  results_root: /DATA/ocl_survey
+  seed: 0
+  save_models: true
+  train_online: true
+  logdir: /DATA/ocl_survey/er_split_cifar100_20_2000/0
+  debug: false
