@@ -1,0 +1,7 @@
+# @package _global_
+
+experiment:
+  results_root: /data/users/asoutif/OCL_Survey/
+
+benchmark:
+  dataset_root: /data/datasets/
