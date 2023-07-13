@@ -31,6 +31,16 @@ def main(args):
     print(f"Final AAA mean: {mean}")
     print(f"Final AAA std: {std}")
 
+    df_continual = metrics_utils.compute_wcacc(df_continual, num_tasks=20)
+
+    mean, std = metrics_utils.compute_mean_std_metric(
+        df_continual, "WCAcc"
+    )
+
+    print()
+    print(f"Final WCAcc mean: {mean}")
+    print(f"Final WCAcc std: {std}")
+
     mean, std = metrics_utils.compute_mean_std_metric(
         df_probing, "Top1_Acc_Stream/eval_phase/test_stream/Task000"
     )

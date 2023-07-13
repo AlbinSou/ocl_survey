@@ -73,11 +73,13 @@ def annotate_splits(dataframe, splits):
     return df
 
 
-def min_acc(dataframe, splits):
-    df = annotate_splits(dataframe, splits)
-    for task in range(len(splits)):
+def compute_min_acc(dataframe, num_tasks=20):
+    df = decorate_with_training_task(dataframe, num_tasks=20)
+    for task in range(num_tasks):
         metric_name = f"Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task:03d}"
-        df["Min_" + metric_name] = df.groupby("seed")[metric_name].cummin()
+        mask = df["training_exp"] - 1 == task
+        df["Min_" + metric_name] = df.groupby("seed", group_keys=False)[metric_name].apply(lambda x: x.mask(mask).cummin())
+    return df
 
 
 def compute_AAA(
@@ -94,6 +96,60 @@ def compute_AAA(
     return df
 
 
+def decorate_with_training_task(
+    dataframe,
+    num_tasks=20,
+    base_name="Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp",
+):
+    metric_list = [f"{base_name}{i:03d}" for i in range(num_tasks)]
+    dataframe["training_exp"] = dataframe[metric_list].count(axis=1)
+    return dataframe
+
+
+def compute_calibrated_accuracy(dataframe):
+    """
+    Computes average anytime accuracy
+    """
+    df = decorate_with_training_task(dataframe)
+    df["calibrated_accuracy"] = (
+        df["Top1_Acc_Stream/eval_phase/valid_stream/Task000"] * df["training_exp"] / 20
+    )
+    return df
+
+
+def compute_wcacc(dataframe, num_tasks=20):
+    """
+    Computes WC-Acc
+    """
+    df = compute_min_acc(dataframe, num_tasks)
+
+    average_cols = [
+        f"Min_Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task:03d}"
+        for task in range(num_tasks)
+    ]
+
+    exclude_cols = [
+        f"Min_Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task-1:03d}"
+        for task in df["training_exp"]
+    ]
+
+    for i, row in df.iterrows():
+        df.loc[i, exclude_cols[i]] = np.nan
+
+    filter_cols = [
+        f"Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task-1:03d}"
+        for task in df["training_exp"]
+    ]
+
+    df["average_min_acc"] = df[average_cols].mean(axis=1)
+    df["current_task_acc"] = df.filter(filter_cols, axis=1).mean(axis=1)
+    df["WCAcc"] = (
+        df["current_task_acc"] * (1 / df["training_exp"])
+        + (1 - 1 / df["training_exp"]) * df["average_min_acc"]
+    )
+    return df
+
+
 def compute_mean_std_metric(dataframe, metric_name, final_step=True):
     df = dataframe
     max_index = df["mb_index"].max()
@@ -106,6 +162,6 @@ if __name__ == "__main__":
     results_dir = "/DATA/ocl_survey/er_split_cifar100_20_2000/"
 
     frames = extract_results(results_dir)
-    df = frames["training"]
+    df = frames["continual"]
 
-    df = compute_average_forgetting(df, 20)
+    df = compute_wcacc(df, 20)
