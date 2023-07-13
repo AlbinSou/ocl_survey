@@ -28,8 +28,8 @@ def main(args):
     mean, std = metrics_utils.compute_mean_std_metric(df_continual, "AAA")
 
     print()
-    print(f"Final Average Accuracy mean: {mean}")
-    print(f"Final Average Accuracy std: {std}")
+    print(f"Final AAA mean: {mean}")
+    print(f"Final AAA std: {std}")
 
     mean, std = metrics_utils.compute_mean_std_metric(
         df_probing, "Top1_Acc_Stream/eval_phase/test_stream/Task000"
