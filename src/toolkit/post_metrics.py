@@ -24,9 +24,25 @@ def compute_forgetting(dataframe, metric_name, prefix="Forgetting_"):
 
     df = dataframe.sort_values("mb_index")
 
-    forg_metric_name = prefix + metric_name
+    if "valid_stream" in metric_name:
+        raise NotImplementedError(
+            "The compututation of forgetting on continual metric streams is not supported"
+        )
+        df = decorate_with_training_task(
+            df, base_name="Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp"
+        )
+    else:
+        df = decorate_with_training_task(
+            df, base_name="Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp"
+        )
 
-    df[forg_metric_name] = df.groupby("seed")[metric_name].cummax() - df[metric_name]
+    df = df.dropna(subset=["training_exp"])
+    df = df.sort_values(by=["mb_index", "training_exp"])
+
+    df[prefix + metric_name] = df.groupby("seed", group_keys=False)[metric_name].apply(
+        lambda x: x.ffill().iloc[0] - x
+    )
+    df.loc[df.groupby("seed").head(1).index, prefix + metric_name] = np.nan
 
     return df
 
@@ -69,7 +85,7 @@ def compute_average_forgetting(
 
 def annotate_splits(dataframe, splits):
     for task, (sp1, sp2) in splits.items():
-        df.loc[(df.mb_index > sp1) & (df.mb_index <= sp2), "training_task"] = task
+        df.loc[(df.mb_index > sp1) & (df.mb_index <= sp2), "training_exp"] = task
     return df
 
 
@@ -78,7 +94,9 @@ def compute_min_acc(dataframe, num_tasks=20):
     for task in range(num_tasks):
         metric_name = f"Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task:03d}"
         mask = df["training_exp"] - 1 == task
-        df["Min_" + metric_name] = df.groupby("seed", group_keys=False)[metric_name].apply(lambda x: x.mask(mask).cummin())
+        df["Min_" + metric_name] = df.groupby("seed", group_keys=False)[
+            metric_name
+        ].apply(lambda x: x.mask(mask).cummin())
     return df
 
 
@@ -122,6 +140,8 @@ def compute_wcacc(dataframe, num_tasks=20):
     Computes WC-Acc
     """
     df = compute_min_acc(dataframe, num_tasks)
+    df = df[~(df.training_exp == 0)]
+    df = df.reset_index()
 
     average_cols = [
         f"Min_Top1_Acc_Exp/eval_phase/valid_stream/Task000/Exp{task:03d}"
@@ -142,7 +162,10 @@ def compute_wcacc(dataframe, num_tasks=20):
     ]
 
     df["average_min_acc"] = df[average_cols].mean(axis=1)
-    df["current_task_acc"] = df.filter(filter_cols, axis=1).mean(axis=1)
+
+    for i, row in df.iterrows():
+        df.loc[i, "current_task_acc"] = df.loc[i, filter_cols[i]]
+
     df["WCAcc"] = (
         df["current_task_acc"] * (1 / df["training_exp"])
         + (1 - 1 / df["training_exp"]) * df["average_min_acc"]
@@ -162,6 +185,6 @@ if __name__ == "__main__":
     results_dir = "/DATA/ocl_survey/er_split_cifar100_20_2000/"
 
     frames = extract_results(results_dir)
-    df = frames["continual"]
+    df = frames["training"]
 
-    df = compute_wcacc(df, 20)
+    df = compute_forgetting(df, "Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000")
