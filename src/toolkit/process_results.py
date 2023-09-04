@@ -44,7 +44,7 @@ def get_seed_from_path(path):
             return int(pm)
 
 
-def extract_results(directory):
+def extract_results(directory, verbose=True):
     """
     Extracts json results from dir, if several
     files are present, it will concatenate the
@@ -58,8 +58,10 @@ def extract_results(directory):
         for f in files:
             if "json" in f:
                 name = os.path.join(root, f)
-                print(name)
-                print(map_name(name))
+
+                if verbose:
+                    print(name)
+                    print(map_name(name))
 
                 name = map_name(name)
 
