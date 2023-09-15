@@ -1,6 +1,6 @@
 # OCL Survey Code Base Instructions
 
-# Install instructions (Witchery)
+# Installation
 
 Create a new environment with python 3.10
 
@@ -9,32 +9,40 @@ conda create -n ocl_survey python=3.10
 conda activate ocl_survey
 ```
 
-- To not lose sanity:
+Initialize and pull avalanche submodule
 
 ```
-conda install mamba
+git submodule init
+git submodule update
 ```
 
-- Then, follow the steps in this order
+Then, install avalanche from the pulled repository
 
 ```
-mamba install matplotlib
-pip install torch torchvision
-mamba env update -f environment.yaml
+cd avalanche.git
+pip install .
 ```
 
-- Add to your python path the ocl_survey directory and the avalanche directory
+Install specific ocl_survey repo dependencies
 
 ```
-conda env config vars set PYTHONPATH=/home/.../ocl_survey:/home/ocl_survey/avalanche.git
+cd ../
+pip install -r requirements.txt
 ```
 
-- Add a deploy config in the config/deploy folder, precising results and dataset path
-- Test the environment by launching main.py
+Set your PYTHONPATH as the root of the project
+
+```
+conda env config vars set PYTHONPATH=/home/.../ocl_survey
+```
+
+In order to let the scripts know where to fetch and log data, you should also create a deploy config, indicating results and dataset paths. Either add a new one or change the content of config/deploy/default.yaml
+
+Lastly, test the environment by launching main.py
 
 ```
 cd experiments/
-python main.py
+python main.py strategy=er experiment=split_cifar100
 ```
 
 # Structure
@@ -42,28 +50,30 @@ python main.py
 The code is structured as follows:
 
 ```
-- src/ # contains source code for the experiments
-    - factories/ # Contains the code to create models, strategies, and benchmarks. Most code additions should be done here
-        - method_factory.py
-        - model_factory.py
-        - benchmark_factory.py
-    - toolkit/ # Contains some utils functions, parallel evaluation plugins, modified strategies (hyperparameter addition) etc...
-- config/ # Config directory used by hydra, 
-    - config.yaml # Default config for normal experiments
-    - hp_config.yaml # Default config for hp selection
-    - results.yaml # The main results directory, defaults to ../results, you can change this
-    - strategy/ # Contains strategy-specific config files (one per strategy)
-    - optimizer/ # Contains optimizer-specific config files (one per optimizer type)
-    - evaluation/ # Contains evaluation config files (no evaluation, non parallel evaluation, parallel evaluation)
-    - benchmarks/ # Contains benchmark relative config (one per benchmark)
-    - experiments/ # Contains the overrides for given experiments (one per benchmark), i.e model, batch size etc..
-    - deploy/ # Folder to precise results and dataset path
-    - scheduler/ # Contains learning rate scheduling relative args (one per scheduler)
-- experiments/
-    - main.py # Main entry point for every experiments, no modifications should be needed in this
-    - main_hp_tuning.py # Main file for the hyperparameter tuning, change here the options for hp search depending on the method
-- scripts/ # Contains shell scripts for running i.e multiple seeds, linear probing
-- tests/ # Some tests for special functionalities, some more should be added maybe more related to the experiments
+├── avalanche.git # Avalanche-Lib code
+├── config # Hydra config files
+│   ├── benchmark
+│   ├── best_configs # Best configs found by main_hp_tuning.py are stored here
+│   ├── deploy # Contains machine specific results and data path
+│   ├── evaluation # Manage evaluation frequency and parrallelism
+│   ├── experiment # Manage general experiment settings
+│   ├── model
+│   ├── optimizer
+│   ├── scheduler
+│   └── strategy
+├── experiments
+│   ├── main_hp_tuning.py # Main script used for hyperparameter optimization
+│   ├── main.py # Main script used to launch single experiments
+│   └── spaces.py
+├── notebooks
+├── results # Exemple results structure containing results for ER
+├── scripts
+    └── get_results.py # Easily collect results from multiple seeds
+├── src
+│   ├── factories # Contains the Benchmark, Method, and Model creation
+│   ├── strategies # Contains code for additional strategies or plugins
+│   └── toolkit
+└── tests
 ```
 
 # Experiments launching
