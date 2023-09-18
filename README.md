@@ -2,18 +2,17 @@
 
 # Installation
 
+Clone this repository
+
+```
+git clone --recurse-submodules https://github.com/AlbinSou/ocl_survey.git
+```
+
 Create a new environment with python 3.10
 
 ```
 conda create -n ocl_survey python=3.10
 conda activate ocl_survey
-```
-
-Initialize and pull avalanche submodule
-
-```
-git submodule init
-git submodule update
 ```
 
 Then, install avalanche from the pulled repository
@@ -36,7 +35,7 @@ Set your PYTHONPATH as the root of the project
 conda env config vars set PYTHONPATH=/home/.../ocl_survey
 ```
 
-In order to let the scripts know where to fetch and log data, you should also create a deploy config, indicating results and dataset paths. Either add a new one or change the content of config/deploy/default.yaml
+In order to let the scripts know where to fetch and log data, you should also create a **deploy config**, indicating where the results should be stored and the datasets fetched. Either add a new one or **change the content of config/deploy/default.yaml**
 
 Lastly, test the environment by launching main.py
 
