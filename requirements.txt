@@ -2,3 +2,4 @@ hydra-core==1.3.2
 jsonlines==4.0.0
 kornia==0.7.0
 ray==2.6.3
+typing-extensions=4.4.0
