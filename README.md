@@ -5,7 +5,7 @@
 Clone this repository
 
 ```
-git clone --recurse-submodules https://github.com/AlbinSou/ocl_survey.git
+git clone https://github.com/AlbinSou/ocl_survey.git
 ```
 
 Create a new environment with python 3.10
@@ -15,17 +15,9 @@ conda create -n ocl_survey python=3.10
 conda activate ocl_survey
 ```
 
-Then, install avalanche from the pulled repository
-
-```
-cd avalanche.git
-pip install .
-```
-
 Install specific ocl_survey repo dependencies
 
 ```
-cd ../
 pip install -r requirements.txt
 ```
 
