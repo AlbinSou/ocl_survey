@@ -1,4 +1,10 @@
-# OCL Survey Code Base Instructions
+# OCL Survey Code
+
+![Screenshot from 2023-10-12 18-33-31](https://github.com/AlbinSou/ocl_survey/assets/36189710/554aec40-a211-4218-afe1-9937a751eddb)
+
+Code for the paper **A Comprehensive Empirical Evaluation on Online Continual Learning**, *Albin Soutif--Cormerais, Antonio Carta, Andrea Cossu, Julio Hurtado, Hamed Hemati, Vincenzo Lomonaco, Joost van de Weijer*, ICCV Workshop 2023 [arxiv](https://arxiv.org/abs/2308.10328)
+
+This repository is meant to serve as an extensible codebase to perform experiments on the Online Continual Learning setting. It is based on the [avalanche](https://github.com/ContinualAI/avalanche) library. Feel free to use it for your own experiments. You can also contribute and add your own method and benchmarks to the comparison by doing a pull request !
 
 # Installation
 
@@ -99,4 +105,19 @@ Modify the strategy specific search parameters, search range etc ... inside main
 
 ```
 python main_hp_tuning.py strategy=er_ace experiment=split_cifar100
+```
+
+# Citation
+
+If you use this repo for a research project please use the following citation:
+
+```
+@InProceedings{Soutif-Cormerais_2023_ICCV,
+    author    = {Albin Soutif-Cormerais, Antonio Carta, Andrea Cossu, Julio Hurtado, Hamed Hemati, Vincenzo Lomonaco, Joost Van de Weijer},
+    title     = {A Comprehensive Empirical Evaluation on Online Continual Learning},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
+    month     = {October},
+    year      = {2023},
+    pages     = {3518-3528}
+}
 ```
