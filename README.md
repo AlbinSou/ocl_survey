@@ -87,6 +87,12 @@ It's also possible to override more fine-grained arguments
 python main.py strategy=er_ace experiment=split_cifar100 evaluation=parallel strategy.alpha=0.7 optimizer.lr=0.05
 ```
 
+Finally, to use the parameters found by the hyperparameter search, use
+
+```
+python main.py strategy=er_ace experiment=split_cifar100 +best_configs=split_cifar100/er_ace
+```
+
 Before running the script, you can display the full config with "-c job" option
 
 ```

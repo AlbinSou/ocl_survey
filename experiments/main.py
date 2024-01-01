@@ -110,6 +110,7 @@ def main(config):
             eval_streams=[scenario.valid_stream[: t + 1]],
             num_workers=0,
             drop_last=True,
+            reset_optimizer_state=False,
         )
 
         if config.experiment.save_models:
