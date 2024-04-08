@@ -118,12 +118,11 @@ python main_hp_tuning.py strategy=er_ace experiment=split_cifar100
 If you use this repo for a research project please use the following citation:
 
 ```
-@InProceedings{Soutif-Cormerais_2023_ICCV,
-    author    = {Albin Soutif-Cormerais, Antonio Carta, Andrea Cossu, Julio Hurtado, Hamed Hemati, Vincenzo Lomonaco, Joost Van de Weijer},
-    title     = {A Comprehensive Empirical Evaluation on Online Continual Learning},
-    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV) Workshops},
-    month     = {October},
-    year      = {2023},
-    pages     = {3518-3528}
+@inproceedings{soutif2023comprehensive,
+  title={A comprehensive empirical evaluation on online continual learning},
+  author={Soutif-Cormerais, Albin and Carta, Antonio and Cossu, Andrea and Hurtado, Julio and Lomonaco, Vincenzo and Van de Weijer, Joost and Hemati, Hamed},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={3518--3528},
+  year={2023}
 }
 ```
